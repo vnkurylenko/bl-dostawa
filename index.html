@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIVNA — Faktury → BaseLinker CSV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0e0f11;
+    --bg2:       #16181c;
+    --bg3:       #1e2026;
+    --border:    #2a2d35;
+    --border2:   #383c47;
+    --text:      #e8eaf0;
+    --text2:     #8b90a0;
+    --text3:     #555a6a;
+    --green:     #1a9e75;
+    --green-bg:  #0d2b22;
+    --green-txt: #4ecca8;
+    --red:       #c0392b;
+    --red-bg:    #2b1212;
+    --red-txt:   #f1948a;
+    --blue:      #2980b9;
+    --blue-bg:   #0d1e2b;
+    --blue-txt:  #7fc4ed;
+    --amber:     #d68910;
+    --amber-bg:  #2b2007;
+    --amber-txt: #f5cba7;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); display: flex; align-items: center; gap: 10px; }
+  .logo-divider { width: 1px; height: 16px; background: var(--border2); }
+  .logo-sub { font-weight: 400; color: var(--text3); font-size: 11px; letter-spacing: 0.12em; }
+  .badge { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 3px; border: 1px solid var(--border2); color: var(--text3); letter-spacing: 0.05em; }
+
+  .main { flex: 1; padding: 1.5rem 2rem; display: flex; flex-direction: column; gap: 1rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+  /* CONFIG SECTION */
+  .config-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .config-row { display: flex; align-items: center; gap: 12px; }
+  .cfg-label { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text3); letter-spacing: 0.1em; white-space: nowrap; min-width: 130px; }
+  .cfg-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: var(--mono); font-size: 12px; padding: 7px 12px; outline: none; transition: border-color 0.15s; }
+  .cfg-input:focus { border-color: var(--border2); }
+  .cfg-input::placeholder { color: var(--text3); }
+  .cfg-hint { font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .cfg-hint a { color: var(--blue-txt); text-decoration: none; }
+  .cfg-hint a:hover { text-decoration: underline; }
+  .cfg-divider { height: 1px; background: var(--border); }
+  .worker-status { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 3px; }
+  .ws-ok  { background: var(--green-bg); color: var(--green-txt); }
+  .ws-bad { background: var(--red-bg);   color: var(--red-txt); }
+
+  /* PANELS */
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; flex: 1; }
+  @media (max-width: 768px) { .panels { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
+  .panel-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .panel-num { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.15em; margin-right: 8px; }
+  .panel-title { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text); letter-spacing: 0.04em; }
+  .panel-count { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+  .panel-body { padding: 14px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+
+  /* DROP ZONE */
+  .drop-zone { border: 1px dashed var(--border2); border-radius: 8px; padding: 2rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: background 0.15s, border-color 0.15s; text-align: center; }
+  .drop-zone:hover { background: var(--bg3); border-color: var(--text3); }
+  .drop-zone.dragover { background: var(--blue-bg); border-color: var(--blue); border-style: solid; }
+  .drop-icon { width: 36px; height: 36px; color: var(--text3); transition: color 0.15s; }
+  .drop-zone:hover .drop-icon { color: var(--text2); }
+  .drop-zone.dragover .drop-icon { color: var(--blue-txt); }
+  .drop-text { font-size: 13px; color: var(--text2); line-height: 1.5; }
+  .drop-sub { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; }
+  input[type=file] { display: none; }
+
+  /* FILE LIST */
+  .file-list { display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow-y: auto; }
+  .file-list::-webkit-scrollbar { width: 4px; }
+  .file-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .file-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg3); border-radius: 6px; border: 1px solid var(--border); transition: border-color 0.2s; }
+  .file-item.done    { border-color: var(--green); }
+  .file-item.error   { border-color: var(--red); }
+  .file-item.parsing { border-color: var(--blue); }
+  .fi-icon { flex-shrink: 0; width: 15px; height: 15px; color: var(--red-txt); }
+  .fi-name { flex: 1; font-family: var(--mono); font-size: 11px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fi-badge { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.05em; flex-shrink: 0; }
+  .fi-badge.pending  { background: var(--bg); color: var(--text3); border: 1px solid var(--border); }
+  .fi-badge.parsing  { background: var(--blue-bg); color: var(--blue-txt); }
+  .fi-badge.done     { background: var(--green-bg); color: var(--green-txt); }
+  .fi-badge.error    { background: var(--red-bg); color: var(--red-txt); }
+  .fi-remove { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 13px; line-height: 1; padding: 4px 6px; border-radius: 3px; flex-shrink: 0; transition: color 0.1s; position: relative; z-index: 10; }
+  .fi-remove:hover { color: var(--red-txt); }
+
+  /* BUTTONS */
+  .parse-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; background: var(--text); color: var(--bg); border: none; border-radius: 7px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+  .parse-btn:hover:not(:disabled) { opacity: 0.88; }
+  .parse-btn:active:not(:disabled) { transform: scale(0.99); }
+  .parse-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .parse-btn .spinner { width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.2); border-top-color: var(--bg); border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+  .parse-btn.loading .spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .download-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; background: var(--green); color: #fff; border: none; border-radius: 7px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+  .download-btn:hover:not(:disabled) { opacity: 0.88; }
+  .download-btn:active:not(:disabled) { transform: scale(0.99); }
+  .download-btn:disabled { opacity: 0.3; cursor: not-allowed; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+
+  /* LOG */
+  .log { font-family: var(--mono); font-size: 10px; color: var(--text3); line-height: 1.8; height: 54px; overflow-y: auto; }
+  .log::-webkit-scrollbar { width: 3px; }
+  .log::-webkit-scrollbar-thumb { background: var(--border); }
+  .log-ok   { color: var(--green-txt); }
+  .log-err  { color: var(--red-txt); }
+  .log-info { color: var(--blue-txt); }
+
+  /* RESULTS */
+  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text3); font-size: 13px; text-align: center; padding: 2.5rem 1.5rem; }
+  .empty-icon { width: 38px; height: 38px; color: var(--border2); }
+
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px; text-align: center; }
+  .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text); line-height: 1.2; }
+  .stat-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; letter-spacing: 0.06em; font-family: var(--mono); }
+
+  .csv-table-wrap { flex: 1; overflow-y: auto; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; min-height: 160px; max-height: 260px; }
+  .csv-table-wrap::-webkit-scrollbar { width: 4px; }
+  .csv-table-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  table.csv-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
+  table.csv-table thead { position: sticky; top: 0; background: var(--bg3); z-index: 1; }
+  table.csv-table th { padding: 7px 10px; color: var(--text3); font-weight: 500; text-align: left; border-bottom: 1px solid var(--border); letter-spacing: 0.08em; font-size: 10px; }
+  table.csv-table td { padding: 5px 10px; color: var(--text2); border-bottom: 1px solid var(--border); }
+  table.csv-table tr:last-child td { border-bottom: none; }
+  table.csv-table td:first-child { color: var(--green-txt); }
+  table.csv-table td:nth-child(2) { color: var(--text); }
+  table.csv-table td:nth-child(3) { color: var(--amber-txt); }
+  table.csv-table tbody tr:hover td { background: var(--bg2); }
+  .more-rows { padding: 6px 10px; font-family: var(--mono); font-size: 10px; color: var(--text3); text-align: center; border-top: 1px solid var(--border); }
+
+  .warn-box { background: var(--amber-bg); border: 1px solid var(--amber); border-radius: 6px; padding: 8px 12px; font-size: 11px; color: var(--amber-txt); font-family: var(--mono); display: none; line-height: 1.6; }
+
+  footer { border-top: 1px solid var(--border); padding: 12px 2rem; display: flex; align-items: center; justify-content: space-between; }
+  footer span { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.04em; }
+  .security-note { font-family: var(--mono); font-size: 10px; color: var(--text3); display: flex; align-items: center; gap: 6px; }
+  .security-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">
+    DIVNA
+    <div class="logo-divider"></div>
+    <span class="logo-sub">FAKTURY → BASELINKER CSV</span>
+  </div>
+  <div class="badge">v1.1</div>
+</header>
+
+<main class="main">
+
+  <!-- CONFIG -->
+  <div class="config-section">
+    <div class="config-row">
+      <span class="cfg-label">ANTHROPIC API KEY</span>
+      <input type="password" class="cfg-input" id="apiKey" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+      <span class="cfg-hint"><a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com →</a></span>
+    </div>
+    <div class="cfg-divider"></div>
+    <div class="config-row">
+      <span class="cfg-label">WORKER URL</span>
+      <input type="text" class="cfg-input" id="workerUrl" placeholder="https://twoj-worker.twoja-nazwa.workers.dev" spellcheck="false">
+      <span class="cfg-hint" id="workerHint">
+        <a href="https://workers.cloudflare.com" target="_blank">Jak skonfigurować →</a>
+      </span>
+    </div>
+  </div>
+
+  <!-- PANELS -->
+  <div class="panels">
+
+    <!-- LEFT: UPLOAD -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <span class="panel-num">01</span>
+          <span class="panel-title">FAKTURY PDF</span>
+        </div>
+        <span class="panel-count" id="fileCount">0 plików</span>
+      </div>
+      <div class="panel-body">
+        <div class="drop-zone" id="dropZone">
+          <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <div class="drop-text">Przeciągnij faktury PDF tutaj<br>lub kliknij aby wybrać</div>
+          <div class="drop-sub">.PDF · wiele plików jednocześnie</div>
+          <input type="file" id="fileInput" multiple accept=".pdf">
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <button class="parse-btn" id="parseBtn" disabled>
+          <div class="spinner"></div>
+          <span class="btn-label">Parsuj faktury →</span>
+        </button>
+
+        <div class="log" id="logArea"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: EXPORT -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <span class="panel-num">02</span>
+          <span class="panel-title">EKSPORT CSV</span>
+        </div>
+        <span class="panel-count" id="resultCount">—</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="empty-state" id="emptyState">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+            <path d="M9 17H7A5 5 0 017 7h10a5 5 0 110 10h-2M9 12h6m-3-3v6"/>
+          </svg>
+          <span>CSV pojawi się tu po<br>przetworzeniu faktur</span>
+        </div>
+
+        <div id="resultState" style="display:none; flex-direction:column; gap:10px; flex:1">
+          <div class="stats-row">
+            <div class="stat"><div class="stat-val" id="statLines">0</div><div class="stat-lbl">POZYCJI</div></div>
+            <div class="stat"><div class="stat-val" id="statQty">0</div><div class="stat-lbl">SZT ŁĄCZNIE</div></div>
+            <div class="stat"><div class="stat-val" id="statSkipped">0</div><div class="stat-lbl">POMINIĘTO</div></div>
+          </div>
+
+          <div class="warn-box" id="warnBox"></div>
+
+          <div class="csv-table-wrap">
+            <table class="csv-table">
+              <thead>
+                <tr><th>EAN</th><th>ILOŚĆ</th><th>CENA BRUTTO</th><th colspan="4" style="color:var(--border2)">···</th></tr>
+              </thead>
+              <tbody id="csvTableBody"></tbody>
+            </table>
+            <div class="more-rows" id="moreRows" style="display:none"></div>
+          </div>
+        </div>
+
+        <button class="download-btn" id="downloadBtn" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          Pobierz CSV dla BaseLinker
+        </button>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <span>DIVNA / BL DOSTAWA · Dane nie są wysyłane na żaden serwer zewnętrzny</span>
+  <div class="security-note">
+    <div class="security-dot"></div>
+    Klucz API przechowywany lokalnie w przeglądarce
+  </div>
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const dropZone    = $('dropZone');
+const fileInput   = $('fileInput');
+const fileList    = $('fileList');
+const parseBtn    = $('parseBtn');
+const logArea     = $('logArea');
+const emptyState  = $('emptyState');
+const resultState = $('resultState');
+const downloadBtn = $('downloadBtn');
+const apiKeyEl    = $('apiKey');
+const workerUrlEl = $('workerUrl');
+
+let files = [];
+let csvContent = '';
+
+// Restore from localStorage
+apiKeyEl.value   = localStorage.getItem('bl_api_key')    || '';
+workerUrlEl.value= localStorage.getItem('bl_worker_url') || '';
+
+apiKeyEl.addEventListener('input',    () => localStorage.setItem('bl_api_key',    apiKeyEl.value.trim()));
+workerUrlEl.addEventListener('input', () => localStorage.setItem('bl_worker_url', workerUrlEl.value.trim()));
+
+// Drop zone
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => addFiles([...e.target.files]));
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  addFiles([...e.dataTransfer.files].filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')));
+});
+
+function addFiles(newFiles) {
+  for (const f of newFiles) {
+    if (!files.find(x => x.name === f.name)) files.push(f);
+  }
+  renderFileList();
+}
+
+function removeFile(name) {
+  files = files.filter(f => f.name !== name);
+  renderFileList();
+}
+
+function renderFileList() {
+  fileList.innerHTML = '';
+  const n = files.length;
+  $('fileCount').textContent = n + (n === 1 ? ' plik' : n < 5 ? ' pliki' : ' plików');
+  for (const f of files) {
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.id = 'fi-' + sid(f.name);
+    item.innerHTML = `
+      <svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <span class="fi-name" title="${esc(f.name)}">${esc(f.name)}</span>
+      <span class="fi-badge pending" id="fib-${sid(f.name)}">czeka</span>
+      <button class="fi-remove" data-fname="${esc(f.name)}" title="Usuń">✕</button>
+    `;
+    item.querySelector('.fi-remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeFile(f.name);
+    });
+    fileList.appendChild(item);
+  }
+  parseBtn.disabled = files.length === 0;
+}
+
+function setFileStatus(name, label, cls) {
+  const item  = $('fi-'  + sid(name));
+  const badge = $('fib-' + sid(name));
+  if (item)  item.className  = 'file-item ' + cls;
+  if (badge) { badge.textContent = label; badge.className = 'fi-badge ' + cls; }
+}
+
+function log(msg, type='') {
+  const s = document.createElement('span');
+  if (type) s.className = 'log-' + type;
+  s.textContent = msg + '\n';
+  logArea.appendChild(s);
+  logArea.scrollTop = logArea.scrollHeight;
+}
+
+// ── PARSE
+parseBtn.addEventListener('click', async () => {
+  const apiKey   = apiKeyEl.value.trim();
+  const workerUrl = workerUrlEl.value.trim().replace(/\/$/, '');
+
+  if (!apiKey) {
+    log('Brak klucza API!', 'err');
+    apiKeyEl.focus();
+    return;
+  }
+  if (!workerUrl) {
+    log('Brak Worker URL! Skonfiguruj Cloudflare Worker.', 'err');
+    workerUrlEl.focus();
+    return;
+  }
+  if (!files.length) return;
+
+  parseBtn.disabled = true;
+  parseBtn.classList.add('loading');
+  parseBtn.querySelector('.btn-label').textContent = 'Parsowanie...';
+  downloadBtn.disabled = true;
+  logArea.innerHTML = '';
+  emptyState.style.display = 'flex';
+  resultState.style.display = 'none';
+  csvContent = '';
+
+  const allItems = [];
+
+  for (const file of files) {
+    setFileStatus(file.name, 'parsowanie...', 'parsing');
+    log('→ ' + file.name, 'info');
+    try {
+      const b64   = await toBase64(file);
+      const items = await callClaude(apiKey, workerUrl, b64);
+      setFileStatus(file.name, 'OK · ' + items.length, 'done');
+      log('  ✓ ' + items.length + ' pozycji', 'ok');
+      allItems.push(...items);
+    } catch (e) {
+      setFileStatus(file.name, 'błąd', 'error');
+      log('  ✗ ' + e.message, 'err');
+    }
+  }
+
+  // Aggregate
+  const agg = {};
+  let totalQty = 0, noEan = 0;
+  const noEanNames = [];
+
+  for (const item of allItems) {
+    const ean = (item.ean || '').replace(/\D/g, '');
+    if (!ean || ean.length < 8 || ean.length > 14) {
+      noEan++;
+      noEanNames.push(item.nazwa || item.symbol || '?');
+      continue;
+    }
+    const qty   = Number(item.ilosc) || 0;
+    const price = parseFloat(String(item.cena_brutto || '0').replace(',', '.')) || 0;
+    totalQty += qty;
+    if (!agg[ean]) agg[ean] = { qty: 0, price };
+    agg[ean].qty   += qty;
+    if (price > 0) agg[ean].price = price;
+  }
+
+  const rows = Object.entries(agg).map(([ean, v]) =>
+    [ean, v.qty, v.price.toFixed(2), '', '', '', '']
+  );
+
+  csvContent = '\uFEFF' + rows.map(r => r.join(';')).join('\n');
+
+  $('statLines').textContent   = rows.length;
+  $('statQty').textContent     = totalQty;
+  $('statSkipped').textContent = noEan;
+  $('resultCount').textContent = rows.length + ' EAN';
+
+  const warnBox = $('warnBox');
+  if (noEan > 0) {
+    warnBox.style.display = 'block';
+    warnBox.textContent   = 'Pominięto ' + noEan + ' pozycji bez EAN: ' + noEanNames.slice(0, 6).join(', ') + (noEanNames.length > 6 ? '...' : '');
+  } else {
+    warnBox.style.display = 'none';
+  }
+
+  const tbody = $('csvTableBody');
+  tbody.innerHTML = '';
+  rows.slice(0, 50).forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = r.map(v => `<td>${esc(String(v))}</td>`).join('');
+    tbody.appendChild(tr);
+  });
+  const moreEl = $('moreRows');
+  if (rows.length > 50) { moreEl.style.display = 'block'; moreEl.textContent = '+ ' + (rows.length - 50) + ' kolejnych wierszy'; }
+  else moreEl.style.display = 'none';
+
+  emptyState.style.display  = 'none';
+  resultState.style.display = 'flex';
+  downloadBtn.disabled       = rows.length === 0;
+
+  parseBtn.classList.remove('loading');
+  parseBtn.querySelector('.btn-label').textContent = 'Parsuj faktury →';
+  parseBtn.disabled = false;
+
+  log('Gotowe. ' + rows.length + ' unikalnych EAN → CSV.', 'ok');
+});
+
+// ── DOWNLOAD
+downloadBtn.addEventListener('click', () => {
+  if (!csvContent) return;
+  const now  = new Date();
+  const pad  = n => String(n).padStart(2, '0');
+  const name = `DOSTAWA_BL_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  log('Pobrano: ' + name, 'ok');
+});
+
+// ── Claude via Worker
+async function callClaude(apiKey, workerUrl, base64Pdf) {
+  const endpoint = workerUrl + '/v1/messages';
+
+  const prompt = `Z tej faktury PDF wyodrębnij WSZYSTKIE pozycje TOWAROWE.
+POMIŃ: "Dostawa", "dostawa", "Shipping", "DS", "Ds" — opłaty za dostawę.
+
+Zwróć TYLKO tablicę JSON (bez markdown, bez żadnego tekstu przed ani po):
+[{"ean":"tylko cyfry 8-14 znaków z pola Kod kreskowy","symbol":"kod produktu","nazwa":"nazwa towaru","ilosc":liczba,"cena_brutto":liczba}]
+
+Zasady:
+- "ean" tylko cyfry 8-14 znaków; jeśli brak EAN zostaw ""
+- "ilosc" = łączna ilość z faktury (liczba całkowita)
+- "cena_brutto" = cena JEDNOSTKOWA brutto za 1 szt (nie łączna wartość pozycji)`;
+
+  const resp = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64Pdf } },
+          { type: 'text', text: prompt }
+        ]
+      }]
+    })
+  });
+
+  if (!resp.ok) {
+    let msg = 'HTTP ' + resp.status;
+    try {
+      const j = await resp.json();
+      msg += ': ' + (j?.error?.message || JSON.stringify(j)).substring(0, 150);
+    } catch { msg += ': ' + (await resp.text().catch(() => '')).substring(0, 150); }
+    throw new Error(msg);
+  }
+
+  const data = await resp.json();
+  const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+
+  let items;
+  try { items = JSON.parse(clean); }
+  catch { throw new Error('Nieoczekiwana odpowiedź: ' + clean.substring(0, 100)); }
+  if (!Array.isArray(items)) throw new Error('Claude zwrócił nieoczekiwany format');
+  return items;
+}
+
+// ── Utils
+function toBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Błąd odczytu: ' + file.name));
+    r.readAsDataURL(file);
+  });
+}
+
+function sid(s)  { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
+function esc(s)  { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
