@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIVNA — Faktury → BaseLinker CSV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0e0f11;
+    --bg2:       #16181c;
+    --bg3:       #1e2026;
+    --border:    #2a2d35;
+    --border2:   #383c47;
+    --text:      #e8eaf0;
+    --text2:     #8b90a0;
+    --text3:     #555a6a;
+    --green:     #1a9e75;
+    --green-bg:  #0d2b22;
+    --green-txt: #4ecca8;
+    --red:       #c0392b;
+    --red-bg:    #2b1212;
+    --red-txt:   #f1948a;
+    --blue:      #2980b9;
+    --blue-bg:   #0d1e2b;
+    --blue-txt:  #7fc4ed;
+    --amber:     #d68910;
+    --amber-bg:  #2b2007;
+    --amber-txt: #f5cba7;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--border2);
+  }
+
+  .logo-sub {
+    font-weight: 400;
+    color: var(--text3);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--border2);
+    color: var(--text3);
+    letter-spacing: 0.05em;
+  }
+
+  /* MAIN */
+  .main {
+    flex: 1;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* API KEY ROW */
+  .api-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .api-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .api-input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 7px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .api-input:focus { border-color: var(--border2); }
+  .api-input::placeholder { color: var(--text3); }
+
+  .api-hint {
+    font-size: 11px;
+    color: var(--text3);
+    white-space: nowrap;
+  }
+
+  .api-hint a { color: var(--blue-txt); text-decoration: none; }
+  .api-hint a:hover { text-decoration: underline; }
+
+  /* TWO PANELS */
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    flex: 1;
+  }
+
+  @media (max-width: 768px) {
+    .panels { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.15em;
+    margin-right: 10px;
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.04em;
+  }
+
+  .panel-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .panel-body {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* DROP ZONE */
+  .drop-zone {
+    border: 1px dashed var(--border2);
+    border-radius: 8px;
+    padding: 2.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    text-align: center;
+  }
+
+  .drop-zone:hover { background: var(--bg3); border-color: var(--text3); }
+
+  .drop-zone.dragover {
+    background: var(--blue-bg);
+    border-color: var(--blue);
+    border-style: solid;
+  }
+
+  .drop-icon {
+    width: 38px;
+    height: 38px;
+    color: var(--text3);
+    transition: color 0.15s;
+  }
+
+  .drop-zone:hover .drop-icon { color: var(--text2); }
+  .drop-zone.dragover .drop-icon { color: var(--blue-txt); }
+
+  .drop-text {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+
+  .drop-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+  }
+
+  input[type=file] { display: none; }
+
+  /* FILE LIST */
+  .file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+
+  .file-list::-webkit-scrollbar { width: 4px; }
+  .file-list::-webkit-scrollbar-track { background: transparent; }
+  .file-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    background: var(--bg3);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    transition: border-color 0.15s;
+  }
+
+  .file-item.done  { border-color: var(--green); }
+  .file-item.error { border-color: var(--red); }
+  .file-item.parsing { border-color: var(--blue); }
+
+  .fi-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: var(--red-txt);
+  }
+
+  .fi-name {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .fi-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+
+  .fi-badge.pending  { background: var(--bg);  color: var(--text3); border: 1px solid var(--border); }
+  .fi-badge.parsing  { background: var(--blue-bg); color: var(--blue-txt); }
+  .fi-badge.done     { background: var(--green-bg); color: var(--green-txt); }
+  .fi-badge.error    { background: var(--red-bg);   color: var(--red-txt); }
+
+  .fi-remove {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 13px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    transition: color 0.1s;
+  }
+
+  .fi-remove:hover { color: var(--red-txt); }
+
+  /* PARSE BUTTON */
+  .parse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 11px;
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .parse-btn:hover:not(:disabled) { opacity: 0.88; }
+  .parse-btn:active:not(:disabled) { transform: scale(0.99); }
+  .parse-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .parse-btn .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: var(--bg);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+
+  .parse-btn.loading .spinner { display: block; }
+  .parse-btn.loading .btn-label { opacity: 0.7; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* LOG */
+  .log {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    line-height: 1.7;
+    height: 56px;
+    overflow-y: auto;
+  }
+
+  .log::-webkit-scrollbar { width: 3px; }
+  .log::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .log-ok   { color: var(--green-txt); }
+  .log-err  { color: var(--red-txt); }
+  .log-info { color: var(--blue-txt); }
+
+  /* RIGHT PANEL — RESULTS */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--text3);
+    font-size: 13px;
+    text-align: center;
+    padding: 3rem 1.5rem;
+  }
+
+  .empty-icon {
+    width: 40px; height: 40px;
+    color: var(--border2);
+  }
+
+  /* STATS */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .stat {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+  }
+
+  .stat-lbl {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 3px;
+    letter-spacing: 0.06em;
+    font-family: var(--mono);
+  }
+
+  /* CSV PREVIEW TABLE */
+  .csv-table-wrap {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    min-height: 180px;
+    max-height: 300px;
+  }
+
+  .csv-table-wrap::-webkit-scrollbar { width: 4px; }
+  .csv-table-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  table.csv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  table.csv-table thead {
+    position: sticky;
+    top: 0;
+    background: var(--bg3);
+    z-index: 1;
+  }
+
+  table.csv-table th {
+    padding: 7px 10px;
+    color: var(--text3);
+    font-weight: 500;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.08em;
+    font-size: 10px;
+  }
+
+  table.csv-table td {
+    padding: 5px 10px;
+    color: var(--text2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.csv-table tr:last-child td { border-bottom: none; }
+
+  table.csv-table td:first-child { color: var(--green-txt); }
+  table.csv-table td:nth-child(2) { color: var(--text); }
+  table.csv-table td:nth-child(3) { color: var(--amber-txt); }
+
+  table.csv-table tbody tr:hover td { background: var(--bg2); }
+
+  .more-rows {
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    text-align: center;
+    border-top: 1px solid var(--border);
+  }
+
+  /* DOWNLOAD BTN */
+  .download-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 11px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .download-btn:hover:not(:disabled) { opacity: 0.88; }
+  .download-btn:active:not(:disabled) { transform: scale(0.99); }
+  .download-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    background: var(--bg3);
+    color: var(--text3);
+    border: 1px solid var(--border);
+  }
+
+  /* WARN BOX */
+  .warn-box {
+    background: var(--amber-bg);
+    border: 1px solid var(--amber);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 11px;
+    color: var(--amber-txt);
+    font-family: var(--mono);
+    display: none;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 14px 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  footer span {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.06em;
+  }
+
+  .security-note {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .security-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">
+    DIVNA
+    <div class="logo-divider"></div>
+    <span class="logo-sub">FAKTURY → BASELINKER</span>
+  </div>
+  <div class="badge">v1.0</div>
+</header>
+
+<main class="main">
+
+  <div class="api-section">
+    <span class="api-label">ANTHROPIC API KEY</span>
+    <input type="password" class="api-input" id="apiKey" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+    <span class="api-hint">Brak klucza? <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a></span>
+  </div>
+
+  <div class="panels">
+
+    <!-- LEFT: UPLOAD -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <span class="panel-num">01</span>
+          <span class="panel-title">FAKTURY PDF</span>
+        </div>
+        <span class="panel-count" id="fileCount">0 plików</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="drop-zone" id="dropZone">
+          <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <div class="drop-text">Przeciągnij faktury PDF tutaj<br>lub kliknij aby wybrać</div>
+          <div class="drop-sub">.PDF · wiele plików jednocześnie</div>
+          <input type="file" id="fileInput" multiple accept=".pdf">
+        </div>
+
+        <div class="file-list" id="fileList"></div>
+
+        <button class="parse-btn" id="parseBtn" disabled>
+          <div class="spinner"></div>
+          <span class="btn-label">Parsuj faktury →</span>
+        </button>
+
+        <div class="log" id="logArea"></div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: EXPORT -->
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <span class="panel-num">02</span>
+          <span class="panel-title">EKSPORT CSV</span>
+        </div>
+        <span class="panel-count" id="resultCount">—</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="empty-state" id="emptyState">
+          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+            <path d="M9 17H7A5 5 0 017 7h10a5 5 0 110 10h-2M9 12h6m-3-3v6"/>
+          </svg>
+          <span>CSV pojawi się tu po<br>przetworzeniu faktur</span>
+        </div>
+
+        <div id="resultState" style="display:none; flex-direction:column; gap:12px; flex:1">
+
+          <div class="stats-row">
+            <div class="stat">
+              <div class="stat-val" id="statLines">0</div>
+              <div class="stat-lbl">POZYCJI</div>
+            </div>
+            <div class="stat">
+              <div class="stat-val" id="statQty">0</div>
+              <div class="stat-lbl">SZT ŁĄCZNIE</div>
+            </div>
+            <div class="stat">
+              <div class="stat-val" id="statSkipped">0</div>
+              <div class="stat-lbl">POMINIĘTO</div>
+            </div>
+          </div>
+
+          <div class="warn-box" id="warnBox"></div>
+
+          <div class="csv-table-wrap">
+            <table class="csv-table">
+              <thead>
+                <tr>
+                  <th>EAN</th>
+                  <th>ILOŚĆ</th>
+                  <th>CENA BRUTTO</th>
+                  <th></th><th></th><th></th><th></th>
+                </tr>
+              </thead>
+              <tbody id="csvTableBody"></tbody>
+            </table>
+            <div class="more-rows" id="moreRows" style="display:none"></div>
+          </div>
+
+        </div>
+
+        <button class="download-btn" id="downloadBtn" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          Pobierz CSV dla BaseLinker
+        </button>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <span>DIVNA / BL DOSTAWA PDF · Działa w przeglądarce, dane nie są wysyłane na żaden serwer</span>
+  <div class="security-note">
+    <div class="security-dot"></div>
+    Klucz API przechowywany tylko lokalnie
+  </div>
+</footer>
+
+<script>
+const dropZone   = document.getElementById('dropZone');
+const fileInput  = document.getElementById('fileInput');
+const fileList   = document.getElementById('fileList');
+const parseBtn   = document.getElementById('parseBtn');
+const logArea    = document.getElementById('logArea');
+const emptyState = document.getElementById('emptyState');
+const resultState= document.getElementById('resultState');
+const downloadBtn= document.getElementById('downloadBtn');
+const apiKeyEl   = document.getElementById('apiKey');
+const warnBox    = document.getElementById('warnBox');
+
+const CLAUDE_API = 'https://api.anthropic.com/v1/messages';
+const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+
+let files = [];
+let csvContent = '';
+
+// ── Restore API key from localStorage
+apiKeyEl.value = localStorage.getItem('bl_api_key') || '';
+apiKeyEl.addEventListener('input', () => {
+  localStorage.setItem('bl_api_key', apiKeyEl.value.trim());
+});
+
+// ── Drop zone
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => addFiles([...e.target.files]));
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const pdfs = [...e.dataTransfer.files].filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  addFiles(pdfs);
+});
+
+function addFiles(newFiles) {
+  for (const f of newFiles) {
+    if (!files.find(x => x.name === f.name)) files.push(f);
+  }
+  renderFileList();
+}
+
+function removeFile(name) {
+  files = files.filter(f => f.name !== name);
+  renderFileList();
+}
+
+function renderFileList() {
+  fileList.innerHTML = '';
+  document.getElementById('fileCount').textContent = files.length + ' plik' + (files.length === 1 ? '' : files.length < 5 ? 'i' : 'ów');
+  for (const f of files) {
+    const item = document.createElement('div');
+    item.className = 'file-item';
+    item.id = 'fi-' + safeid(f.name);
+    item.innerHTML = `
+      <svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <span class="fi-name" title="${escHtml(f.name)}">${escHtml(f.name)}</span>
+      <span class="fi-badge pending" id="fib-${safeid(f.name)}">czeka</span>
+      <button class="fi-remove" onclick="removeFile(${JSON.stringify(f.name)})">✕</button>
+    `;
+    fileList.appendChild(item);
+  }
+  parseBtn.disabled = files.length === 0;
+}
+
+function setFileStatus(name, label, cls) {
+  const el = document.getElementById('fi-' + safeid(name));
+  const badge = document.getElementById('fib-' + safeid(name));
+  if (el) el.className = 'file-item ' + cls;
+  if (badge) { badge.textContent = label; badge.className = 'fi-badge ' + cls; }
+}
+
+// ── Logging
+function log(msg, type='') {
+  const s = document.createElement('span');
+  s.className = type ? 'log-' + type : '';
+  s.textContent = msg + '\n';
+  logArea.appendChild(s);
+  logArea.scrollTop = logArea.scrollHeight;
+}
+
+// ── PARSE
+parseBtn.addEventListener('click', async () => {
+  const apiKey = apiKeyEl.value.trim();
+  if (!apiKey) { log('Brak klucza API!', 'err'); apiKeyEl.focus(); return; }
+  if (!files.length) return;
+
+  parseBtn.disabled = true;
+  parseBtn.classList.add('loading');
+  parseBtn.querySelector('.btn-label').textContent = 'Parsowanie...';
+  downloadBtn.disabled = true;
+  logArea.innerHTML = '';
+  emptyState.style.display = 'flex';
+  resultState.style.display = 'none';
+  csvContent = '';
+
+  const allItems = [];
+  let apiErrors = 0;
+
+  for (const file of files) {
+    setFileStatus(file.name, 'parsowanie...', 'parsing');
+    log('→ ' + file.name, 'info');
+
+    try {
+      const b64 = await toBase64(file);
+      const items = await callClaude(apiKey, b64);
+      const count = items.length;
+      setFileStatus(file.name, 'OK · ' + count, 'done');
+      log('  ✓ ' + count + ' pozycji', 'ok');
+      allItems.push(...items);
+    } catch (e) {
+      setFileStatus(file.name, 'błąd', 'error');
+      log('  ✗ ' + e.message, 'err');
+      apiErrors++;
+    }
+  }
+
+  // Aggregate by EAN
+  const agg = {};
+  let totalQty = 0;
+  let noEan = 0;
+  const noEanNames = [];
+
+  for (const item of allItems) {
+    const ean = (item.ean || '').replace(/\D/g, '');
+    if (!ean || ean.length < 8 || ean.length > 14) {
+      noEan++;
+      noEanNames.push(item.nazwa || item.symbol || '—');
+      continue;
+    }
+    const qty   = Number(item.ilosc) || 0;
+    const price = parseFloat(String(item.cena_brutto || '0').replace(',', '.')) || 0;
+    totalQty += qty;
+    if (!agg[ean]) agg[ean] = { qty: 0, price };
+    agg[ean].qty += qty;
+    if (price > 0) agg[ean].price = price;
+  }
+
+  const rows = Object.entries(agg).map(([ean, v]) =>
+    [ean, v.qty, v.price.toFixed(2), '', '', '', '']
+  );
+
+  // Build CSV string
+  csvContent = '\uFEFF' + rows.map(r => r.join(';')).join('\n');
+
+  // Stats
+  document.getElementById('statLines').textContent = rows.length;
+  document.getElementById('statQty').textContent = totalQty;
+  document.getElementById('statSkipped').textContent = noEan;
+  document.getElementById('resultCount').textContent = rows.length + ' EAN';
+
+  // Warn box
+  if (noEan > 0) {
+    warnBox.style.display = 'block';
+    warnBox.textContent = 'Pominięto ' + noEan + ' pozycji bez EAN: ' + noEanNames.slice(0,5).join(', ') + (noEanNames.length > 5 ? '...' : '');
+  } else {
+    warnBox.style.display = 'none';
+  }
+
+  // Table preview
+  const tbody = document.getElementById('csvTableBody');
+  tbody.innerHTML = '';
+  const preview = rows.slice(0, 50);
+  for (const r of preview) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = r.map(v => `<td>${escHtml(String(v))}</td>`).join('');
+    tbody.appendChild(tr);
+  }
+  const moreEl = document.getElementById('moreRows');
+  if (rows.length > 50) {
+    moreEl.style.display = 'block';
+    moreEl.textContent = '+ ' + (rows.length - 50) + ' kolejnych wierszy...';
+  } else {
+    moreEl.style.display = 'none';
+  }
+
+  emptyState.style.display = 'none';
+  resultState.style.display = 'flex';
+  downloadBtn.disabled = rows.length === 0;
+
+  parseBtn.classList.remove('loading');
+  parseBtn.querySelector('.btn-label').textContent = 'Parsuj faktury →';
+  parseBtn.disabled = false;
+
+  log('Gotowe. ' + rows.length + ' EAN → CSV.', 'ok');
+});
+
+// ── DOWNLOAD
+downloadBtn.addEventListener('click', () => {
+  if (!csvContent) return;
+  const now  = new Date();
+  const pad  = n => String(n).padStart(2, '0');
+  const name = `DOSTAWA_BL_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  log('Pobrano: ' + name, 'ok');
+});
+
+// ── Claude API
+async function callClaude(apiKey, base64Pdf) {
+  const prompt = `Z tej faktury PDF wyodrębnij WSZYSTKIE pozycje TOWAROWE.
+POMIŃ pozycje: "Dostawa", "dostawa", "Shipping", "DS", "Ds" lub podobne (opłaty za dostawę).
+
+Zwróć TYLKO tablicę JSON (bez markdown backticks, bez żadnego tekstu):
+[{"ean":"tylko cyfry 8-14 znaków z pola Kod kreskowy lub podobnego","symbol":"kod/symbol produktu","nazwa":"nazwa towaru","ilosc":liczba,"cena_brutto":liczba}]
+
+Zasady:
+- "ean" tylko cyfry 8-14 znaków; jeśli brak EAN → ""
+- "ilosc" = łączna ilość z faktury
+- "cena_brutto" = cena JEDNOSTKOWA brutto (nie łączna wartość)`;
+
+  const resp = await fetch(CLAUDE_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64Pdf } },
+          { type: 'text', text: prompt }
+        ]
+      }]
+    })
+  });
+
+  if (!resp.ok) {
+    const txt = await resp.text().catch(() => '');
+    let msg = 'HTTP ' + resp.status;
+    try {
+      const j = JSON.parse(txt);
+      msg += ': ' + (j?.error?.message || txt).substring(0, 120);
+    } catch { msg += ': ' + txt.substring(0, 120); }
+    throw new Error(msg);
+  }
+
+  const data = await resp.json();
+  const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
+
+  let items;
+  try { items = JSON.parse(clean); }
+  catch { throw new Error('Nieoczekiwana odpowiedź Claude'); }
+  if (!Array.isArray(items)) throw new Error('Claude zwrócił nieoczekiwany format');
+  return items;
+}
+
+// ── Helpers
+function toBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Błąd odczytu: ' + file.name));
+    r.readAsDataURL(file);
+  });
+}
+
+function safeid(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
