@@ -502,15 +502,17 @@ async function callClaude(apiKey, workerUrl, base64Pdf) {
   const endpoint = workerUrl + '/v1/messages';
 
   const prompt = `Z tej faktury PDF wyodrębnij WSZYSTKIE pozycje TOWAROWE.
-POMIŃ: "Dostawa", "dostawa", "Shipping", "DS", "Ds" — opłaty za dostawę.
+POMIŃ: "Dostawa", "dostawa", "Delivery", "Shipping", "DS", "Ds" i podobne — opłaty za dostawę.
 
 Zwróć TYLKO tablicę JSON (bez markdown, bez żadnego tekstu przed ani po):
 [{"ean":"tylko cyfry 8-14 znaków z pola Kod kreskowy","symbol":"kod produktu","nazwa":"nazwa towaru","ilosc":liczba,"cena_brutto":liczba}]
 
 Zasady:
 - "ean" tylko cyfry 8-14 znaków; jeśli brak EAN zostaw ""
-- "ilosc" = łączna ilość z faktury (liczba całkowita)
-- "cena_brutto" = cena JEDNOSTKOWA brutto za 1 szt (nie łączna wartość pozycji)`;
+- KRYTYCZNE: każdy wiersz z faktury = osobny obiekt w tablicy. NIE łącz wierszy o tym samym EAN.
+- Jeśli ten sam EAN pojawia się wielokrotnie z różnymi cenami — zwróć KAŻDY wiersz osobno.
+- "ilosc" = ilość z TEGO konkretnego wiersza faktury (nie suma wszystkich wierszy z tym EAN)
+- "cena_brutto" = cena JEDNOSTKOWA brutto za 1 szt z tego wiersza (nie łączna wartość pozycji)`;
 
   const resp = await fetch(endpoint, {
     method: 'POST',
