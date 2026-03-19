@@ -422,7 +422,7 @@ parseBtn.addEventListener('click', async () => {
     }
   }
 
-  // Aggregate
+  // Aggregate: same EAN + same price -> merge; same EAN + different price -> separate rows
   const agg = {};
   let totalQty = 0, noEan = 0;
   const noEanNames = [];
@@ -437,13 +437,13 @@ parseBtn.addEventListener('click', async () => {
     const qty   = Number(item.ilosc) || 0;
     const price = parseFloat(String(item.cena_brutto || '0').replace(',', '.')) || 0;
     totalQty += qty;
-    if (!agg[ean]) agg[ean] = { qty: 0, price };
-    agg[ean].qty   += qty;
-    if (price > 0) agg[ean].price = price;
+    const key = ean + '|' + price.toFixed(2);
+    if (!agg[key]) agg[key] = { ean, qty: 0, price };
+    agg[key].qty += qty;
   }
 
-  const rows = Object.entries(agg).map(([ean, v]) =>
-    [ean, v.qty, v.price.toFixed(2), '', '', '', '']
+  const rows = Object.values(agg).map(v =>
+    [v.ean, v.qty, v.price.toFixed(2), '', '', '', '']
   );
 
   csvContent = '\uFEFF' + rows.map(r => r.join(';')).join('\n');
