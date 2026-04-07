@@ -551,28 +551,23 @@ $('o-loadSources').addEventListener('click', async ()=>{
     ]);
 
     const sel=$('o-source'); sel.innerHTML='';
-    let count=0;
+    // Add default "personal" option (no custom_source_id needed)
+    const defOpt=document.createElement('option');
+    defOpt.value='0'; defOpt.textContent='Zamówienie osobiste (domyślne)';
+    sel.appendChild(defOpt);
+    let count=1;
+    // custom sources from getOrderSources
     const sources = srcData.sources || {};
     Object.entries(sources).forEach(([type, arr])=>{
-      // sources = { personal: [{id,name},...], shop: [...], ... }
       if(Array.isArray(arr)){
         arr.forEach(src=>{
           const opt=document.createElement('option');
-          opt.value=src.id;
-          opt.dataset.type=type;
-          opt.textContent=(src.name||type)+' ('+type+' / '+src.id+')';
+          opt.value=src.id||0;
+          opt.textContent=(src.name||type)+' ('+type+' / id:'+src.id+')';
           sel.appendChild(opt); count++;
         });
-      } else if(typeof arr==='object' && arr!==null){
-        // flat object {id, name}
-        const opt=document.createElement('option');
-        opt.value=arr.id||type;
-        opt.dataset.type=type;
-        opt.textContent=(arr.name||type)+' ('+type+')';
-        sel.appendChild(opt); count++;
       }
     });
-    if(count===0) sel.innerHTML='<option value="">Brak źródeł</option>';
 
     const stSel=$('o-status'); stSel.innerHTML='';
     (stData.statuses||[]).forEach(st=>{
@@ -682,11 +677,12 @@ $('o-createBtn').addEventListener('click', async ()=>{
   const sourceEl = $('o-source');
   const sourceType = sourceEl.options[sourceEl.selectedIndex]?.dataset?.type || 'personal';
 
-  // BaseLinker addOrder: order_source_id=0 for personal, actual id for shops
-  // order_source param is NOT used in addOrder — only order_source_id
+  // BaseLinker addOrder: custom_source_id is optional
+  // order_source / order_source_id do NOT exist in addOrder API
+  const customSourceId = parseInt(sourceId) || 0;
   const params={
     order_status_id: parseInt(statusId),
-    order_source_id: sourceType==='personal' ? 0 : (parseInt(sourceId)||0),
+    ...(customSourceId > 0 ? {custom_source_id: customSourceId} : {}),
     date_add: Math.floor(Date.now()/1000),
     currency: 'PLN',
     payment_method: 'przelew',
