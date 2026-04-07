@@ -462,7 +462,7 @@ $('d-parseBtn').addEventListener('click', async ()=>{
   allItems.forEach(item=>{
     const ean=(item.ean||'').replace(/\D/g,'');
     if(!ean||ean.length<8||ean.length>14){noEan++;noEanNames.push(item.nazwa||item.symbol||'?');return;}
-    const qty=Number(item.ilosc)||0;
+    const qty=parseQty(item.ilosc);
     const price=parseFloat(String(item.cena_brutto||'0').replace(',','.'))||0;
     totalQty+=qty;
     const key=ean+'|'+price.toFixed(2)+'|'+(item.lp||'');
@@ -701,7 +701,7 @@ Zwróć TYLKO tablicę JSON (bez markdown, bez żadnego tekstu przed ani po):
 Zasady:
 - "lp" = numer wiersza Lp z faktury
 - "ean" = tylko cyfry 8-14 znaków; jeśli brak EAN zostaw ""
-- "ilosc" = dokładna liczba z kolumny Ilość w TYM wierszu
+- "ilosc" = dokładna liczba z kolumny Ilość w TYM wierszu (UWAGA: "6,000" = 6 sztuk, "15,000" = 15 sztuk — przecinek to separator dziesiętny zapisu polskiego, NIE separator tysięcy)
 - "cena_brutto" = cena BRUTTO jednostkowa za 1 szt. NIGDY nie używaj ceny netto
 - Liczba obiektów MUSI być równa liczbie wierszy towarowych
 - NIE sumuj, NIE łącz — jeden wiersz faktury = jeden obiekt JSON`;
@@ -714,7 +714,7 @@ Zwróć TYLKO tablicę JSON (bez markdown, bez żadnego tekstu):
 Zasady:
 - "ean" = cyfry z kolumny "Kod kreskowy" lub "EAN" (8-14 znaków); jeśli brak zostaw ""
 - "symbol" = kod z kolumny "Symbol" lub "Artykuł"
-- "ilosc" = liczba sztuk z TEGO wiersza
+- "ilosc" = liczba sztuk z TEGO wiersza (UWAGA: format "6,000" oznacza 6 sztuk, nie 6000 — przecinek to separator dziesiętny lub tysięczny w formacie polskim, zawsze zwróć liczbę całkowitą bez przecinków)
 - Jeden wiersz dokumentu = jeden obiekt JSON
 - NIE pomijaj żadnych pozycji towarowych`;
 
@@ -807,6 +807,14 @@ function toBase64(file){
     r.onerror=()=>rej(new Error('Błąd odczytu: '+file.name));
     r.readAsDataURL(file);
   });
+}
+function parseQty(v){
+  // "6,000" in Polish invoices = 6 pcs (comma is decimal separator)
+  // but Claude sometimes returns 6000 as number — detect and fix
+  let n = Number(v) || 0;
+  // if number has no decimal and ends in 3 zeros, likely misread (6000→6, 15000→15)
+  if(n>=1000 && n%1000===0 && String(v).includes('000')) n=n/1000;
+  return Math.round(n);
 }
 function sid(s){return s.replace(/[^a-zA-Z0-9]/g,'_');}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
