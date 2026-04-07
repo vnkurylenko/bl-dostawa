@@ -552,8 +552,25 @@ $('o-loadSources').addEventListener('click', async ()=>{
 
     const sel=$('o-source'); sel.innerHTML='';
     let count=0;
-    Object.entries(srcData.sources||{}).forEach(([id,src])=>{
-      const opt=document.createElement('option'); opt.value=id; opt.textContent=src.name+' ('+id+')'; sel.appendChild(opt); count++;
+    const sources = srcData.sources || {};
+    Object.entries(sources).forEach(([type, arr])=>{
+      // sources = { personal: [{id,name},...], shop: [...], ... }
+      if(Array.isArray(arr)){
+        arr.forEach(src=>{
+          const opt=document.createElement('option');
+          opt.value=src.id;
+          opt.dataset.type=type;
+          opt.textContent=(src.name||type)+' ('+type+' / '+src.id+')';
+          sel.appendChild(opt); count++;
+        });
+      } else if(typeof arr==='object' && arr!==null){
+        // flat object {id, name}
+        const opt=document.createElement('option');
+        opt.value=arr.id||type;
+        opt.dataset.type=type;
+        opt.textContent=(arr.name||type)+' ('+type+')';
+        sel.appendChild(opt); count++;
+      }
     });
     if(count===0) sel.innerHTML='<option value="">Brak źródeł</option>';
 
@@ -663,14 +680,12 @@ $('o-createBtn').addEventListener('click', async ()=>{
   if(!statusId){oLog('Wybierz status zamówienia!','err');$('o-createBtn').disabled=false;$('o-createBtn').classList.remove('loading');$('o-createBtn').querySelector('.btn-label').textContent='Utwórz zamówienie w BaseLinker →';return;}
 
   const sourceEl = $('o-source');
-  const sourceText = sourceEl.options[sourceEl.selectedIndex]?.text || '';
-  // source name is before " (" in option text
-  const sourceName = sourceText.replace(/\s*\(\d+\)$/, '').trim();
+  const sourceType = sourceEl.options[sourceEl.selectedIndex]?.dataset?.type || 'personal';
 
   const params={
     order_status_id: parseInt(statusId),
-    order_source: sourceName,
-    order_source_id: parseInt(sourceId),
+    order_source: sourceType,
+    order_source_id: parseInt(sourceId)||0,
     date_add: Math.floor(Date.now()/1000),
     currency: 'PLN',
     payment_method: 'przelew',
