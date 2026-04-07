@@ -695,11 +695,24 @@ $('o-createBtn').addEventListener('click', async ()=>{
             page: 1
           });
           const prods = res.products || {};
+          const prodKeys = Object.keys(prods);
+          // Debug first EAN
+          if(eans.indexOf(ean)===0){
+            oLog('DEBUG first product keys: '+JSON.stringify(prodKeys.slice(0,3)), 'info');
+            if(prodKeys.length>0){
+              const sample = prods[prodKeys[0]];
+              oLog('DEBUG sample fields: '+JSON.stringify(Object.keys(sample)), 'info');
+              oLog('DEBUG prices: '+JSON.stringify(sample.prices||sample.price_brutto||'?'), 'info');
+            }
+          }
           Object.entries(prods).forEach(([pid, p])=>{
             if(!eanToProduct[ean]){
-              // get price from price groups — take first available
+              // Try different price fields
               const prices = p.prices || {};
-              const priceVal = Object.values(prices)[0] || 0;
+              const priceVal = p.price_brutto
+                || p.price
+                || Object.values(prices)[0]
+                || 0;
               eanToProduct[ean] = {
                 product_id: pid,
                 name: p.name || '',
@@ -709,7 +722,7 @@ $('o-createBtn').addEventListener('click', async ()=>{
               };
             }
           });
-        }catch(e){ /* skip */ }
+        }catch(e){ oLog('DEBUG err '+ean+': '+e.message,'err'); }
       }
     }
     const found = Object.keys(eanToProduct).length;
