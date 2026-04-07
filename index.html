@@ -663,13 +663,83 @@ $('o-createBtn').addEventListener('click', async ()=>{
   if(!oParsedItems.length){oLog('Brak pozycji!','err');return;}
 
   $('o-createBtn').disabled=true; $('o-createBtn').classList.add('loading');
-  $('o-createBtn').querySelector('.btn-label').textContent='Tworzenie zamówienia...';
+  $('o-createBtn').querySelector('.btn-label').textContent='Szukam produktów w katalogu...';
   $('o-successBox').style.display='none';
 
-  const products=oParsedItems
-    .map(i=>({ean:(i.ean||'').replace(/\D/g,''),qty:Number(i.ilosc)||0,name:i.nazwa||''}))
-    .filter(i=>i.ean.length>=8&&i.ean.length<=14&&i.qty>0)
-    .map(i=>({storage:'db',storage_id:0,product_id:0,variant_id:0,name:i.name,sku:'',ean:i.ean,location:'',warehouse_id:0,attributes:'',price_brutto:0,tax_rate:0,quantity:i.qty,weight:0}));
+  const INVENTORY_ID = 9405;
+
+  // Step 1: collect valid items from PDF
+  const parsedValid = oParsedItems
+    .map(i=>({ean:(i.ean||'').replace(/\D/g,''), qty:parseQty(i.ilosc), name:i.nazwa||'', symbol:i.symbol||''}))
+    .filter(i=>i.ean.length>=8&&i.ean.length<=14&&i.qty>0);
+
+  // Step 2: look up product_id and price from BL inventory by EAN
+  // getInventoryProductsList supports filter_ean — batch by chunks of 100 EANs
+  const eanToProduct = {};
+  const eans = [...new Set(parsedValid.map(i=>i.ean))];
+
+  try {
+    // getInventoryProductsList can filter by EAN one at a time — use getInventoryProductsData instead
+    // We'll call getInventoryProductsList with no filter and page through, or use filter_ean
+    // BaseLinker supports filter_ean in getInventoryProductsList
+    oLog('Szukam '+eans.length+' EAN w katalogu BL...', 'info');
+
+    // Process in chunks of 100
+    for(let i=0; i<eans.length; i+=50){
+      const chunk = eans.slice(i, i+50);
+      for(const ean of chunk){
+        try{
+          const res = await blApi(token, workerUrl, 'getInventoryProductsList', {
+            inventory_id: INVENTORY_ID,
+            filter_ean: ean,
+            page: 1
+          });
+          const prods = res.products || {};
+          Object.entries(prods).forEach(([pid, p])=>{
+            if(!eanToProduct[ean]){
+              // get price from price groups — take first available
+              const prices = p.prices || {};
+              const priceVal = Object.values(prices)[0] || 0;
+              eanToProduct[ean] = {
+                product_id: pid,
+                name: p.name || '',
+                sku: p.sku || '',
+                price_brutto: parseFloat(priceVal) || 0,
+                tax_rate: 23
+              };
+            }
+          });
+        }catch(e){ /* skip */ }
+      }
+    }
+    const found = Object.keys(eanToProduct).length;
+    oLog('Znaleziono '+found+' z '+eans.length+' produktów w katalogu', found===eans.length?'ok':'info');
+  }catch(e){
+    oLog('Uwaga: nie udało się pobrać katalogu: '+e.message, 'err');
+  }
+
+  $('o-createBtn').querySelector('.btn-label').textContent='Tworzenie zamówienia...';
+
+  // Step 3: build products array with product_id and price from catalog
+  const products = parsedValid.map(i=>{
+    const cat = eanToProduct[i.ean] || {};
+    return {
+      storage: 'db',
+      storage_id: 0,
+      product_id: cat.product_id || '',
+      variant_id: 0,
+      name: cat.name || i.name,
+      sku: cat.sku || i.symbol || '',
+      ean: i.ean,
+      location: '',
+      warehouse_id: 0,
+      attributes: '',
+      price_brutto: cat.price_brutto || 0,
+      tax_rate: cat.tax_rate || 23,
+      quantity: i.qty,
+      weight: 0
+    };
+  });
 
   const statusId = $('o-status').value;
   if(!statusId){oLog('Wybierz status zamówienia!','err');$('o-createBtn').disabled=false;$('o-createBtn').classList.remove('loading');$('o-createBtn').querySelector('.btn-label').textContent='Utwórz zamówienie w BaseLinker →';return;}
