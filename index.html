@@ -682,10 +682,11 @@ $('o-createBtn').addEventListener('click', async ()=>{
   const sourceEl = $('o-source');
   const sourceType = sourceEl.options[sourceEl.selectedIndex]?.dataset?.type || 'personal';
 
+  // BaseLinker addOrder: order_source_id=0 for personal, actual id for shops
+  // order_source param is NOT used in addOrder — only order_source_id
   const params={
     order_status_id: parseInt(statusId),
-    order_source: sourceType,
-    order_source_id: parseInt(sourceId)||0,
+    order_source_id: sourceType==='personal' ? 0 : (parseInt(sourceId)||0),
     date_add: Math.floor(Date.now()/1000),
     currency: 'PLN',
     payment_method: 'przelew',
