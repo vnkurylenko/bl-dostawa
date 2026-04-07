@@ -287,6 +287,14 @@
             </div>
             <div class="form-row">
               <div class="form-group">
+                <div class="form-label">STATUS ZAMÓWIENIA</div>
+                <select class="source-select" id="o-status">
+                  <option value="">— wczytaj źródła →</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
                 <div class="form-label">IMIĘ I NAZWISKO</div>
                 <input type="text" class="cfg-input" id="o-name" placeholder="Jan Kowalski">
               </div>
@@ -537,14 +545,25 @@ $('o-loadSources').addEventListener('click', async ()=>{
   const workerUrl=$('workerUrl').value.trim().replace(/\/$/,'');
   if(!workerUrl){oLog('Brak Worker URL!','err');return;}
   try{
-    const data=await blApi(token,workerUrl,'getOrderSources',{});
+    const [srcData, stData] = await Promise.all([
+      blApi(token,workerUrl,'getOrderSources',{}),
+      blApi(token,workerUrl,'getOrderStatusList',{})
+    ]);
+
     const sel=$('o-source'); sel.innerHTML='';
     let count=0;
-    Object.entries(data.sources||{}).forEach(([id,src])=>{
+    Object.entries(srcData.sources||{}).forEach(([id,src])=>{
       const opt=document.createElement('option'); opt.value=id; opt.textContent=src.name+' ('+id+')'; sel.appendChild(opt); count++;
     });
     if(count===0) sel.innerHTML='<option value="">Brak źródeł</option>';
-    oLog('Wczytano '+count+' źródeł zamówień','ok');
+
+    const stSel=$('o-status'); stSel.innerHTML='';
+    (stData.statuses||[]).forEach(st=>{
+      const opt=document.createElement('option'); opt.value=st.id; opt.textContent=st.name+' ('+st.id+')'; stSel.appendChild(opt);
+    });
+    if(!stData.statuses||!stData.statuses.length) stSel.innerHTML='<option value="">Brak statusów</option>';
+
+    oLog('Wczytano '+count+' źródeł i '+(stData.statuses||[]).length+' statusów','ok');
   }catch(e){oLog('Błąd: '+e.message,'err');}
 });
 
@@ -566,10 +585,21 @@ $('o-parseBtn').addEventListener('click', async ()=>{
 
   try{
     const b64=await toBase64(oFile);
-    const items=await callClaude(apiKey,workerUrl,b64,'order');
+    const result=await callClaude(apiKey,workerUrl,b64,'order');
+    const items=result.pozycje||result;
+    const klient=result.klient||{};
     setFiStatus2('ofi-main','ofib-main','OK · '+items.length,'done');
     oLog('  ✓ '+items.length+' pozycji','ok');
     oParsedItems=items;
+    // Auto-fill client fields
+    if(klient.nazwa||klient.imie_nazwisko) $('o-name').value=klient.nazwa||klient.imie_nazwisko||'';
+    if(klient.email)        $('o-email').value=klient.email;
+    if(klient.telefon)      $('o-phone').value=klient.telefon;
+    if(klient.nip)          $('o-nip').value=klient.nip;
+    if(klient.ulica)        $('o-street').value=klient.ulica;
+    if(klient.kod_pocztowy) $('o-postcode').value=klient.kod_pocztowy;
+    if(klient.miasto)       $('o-city').value=klient.miasto;
+    if(Object.keys(klient).some(k=>klient[k])) oLog('  ✓ Dane klienta uzupełnione automatycznie','ok');
     renderOrderResult(items);
   }catch(e){
     setFiStatus2('ofi-main','ofib-main','błąd','error');
@@ -629,8 +659,12 @@ $('o-createBtn').addEventListener('click', async ()=>{
     .filter(i=>i.ean.length>=8&&i.ean.length<=14&&i.qty>0)
     .map(i=>({storage:'db',storage_id:0,product_id:0,variant_id:0,name:i.name,sku:'',ean:i.ean,location:'',warehouse_id:0,attributes:'',price_brutto:0,tax_rate:0,quantity:i.qty,weight:0}));
 
+  const statusId = $('o-status').value;
+  if(!statusId){oLog('Wybierz status zamówienia!','err');$('o-createBtn').disabled=false;$('o-createBtn').classList.remove('loading');$('o-createBtn').querySelector('.btn-label').textContent='Utwórz zamówienie w BaseLinker →';return;}
+
   const params={
     order_source_id: parseInt(sourceId),
+    order_status_id: parseInt(statusId),
     date_add: Math.floor(Date.now()/1000),
     currency: 'PLN',
     payment_method: 'przelew',
@@ -706,16 +740,36 @@ Zasady:
 - Liczba obiektów MUSI być równa liczbie wierszy towarowych
 - NIE sumuj, NIE łącz — jeden wiersz faktury = jeden obiekt JSON`;
 
-  const promptOrder=`Z tego dokumentu PDF (zamówienie od klienta) wyodrębnij WSZYSTKIE pozycje towarowe.
+  const promptOrder=`To jest zamówienie które klient wysłał DO NAS. Wyodrębnij dwa elementy.
 
-Zwróć TYLKO tablicę JSON (bez markdown, bez żadnego tekstu):
-[{"lp":numer_wiersza,"ean":"cyfry 8-14 znaków z pola Kod kreskowy","symbol":"kod/symbol produktu","nazwa":"pełna nazwa towaru","ilosc":liczba}]
+1) Dane KLIENTA który składa zamówienie:
+   - To jest firma/osoba w sekcji "Sprzedawca", "Zamawiający", "Nabywca" lub wystawca dokumentu
+   - W tym typie dokumentu ("Zamówienie do dostawcy") — klient to ten kto WYSTAWIA dokument (sekcja "Sprzedawca" lub nagłówek firmy)
+   - Szukaj: nazwy firmy, NIP, adresu, telefonu, emaila wystawcy zamówienia
 
-Zasady:
+2) WSZYSTKIE pozycje towarowe z tabeli
+
+Zwróć TYLKO jeden obiekt JSON (bez markdown, bez żadnego tekstu):
+{
+  "klient": {
+    "nazwa": "pełna nazwa firmy klienta",
+    "email": "email lub ''",
+    "telefon": "telefon lub ''",
+    "nip": "NIP tylko cyfry lub ''",
+    "ulica": "ulica i numer lub ''",
+    "kod_pocztowy": "kod pocztowy lub ''",
+    "miasto": "miasto lub ''"
+  },
+  "pozycje": [
+    {"lp":numer_wiersza,"ean":"cyfry 8-14 znaków z pola Kod kreskowy","symbol":"kod/symbol produktu","nazwa":"pełna nazwa towaru","ilosc":liczba}
+  ]
+}
+
+Zasady dla pozycji:
 - "ean" = cyfry z kolumny "Kod kreskowy" lub "EAN" (8-14 znaków); jeśli brak zostaw ""
 - "symbol" = kod z kolumny "Symbol" lub "Artykuł"
-- "ilosc" = liczba sztuk z TEGO wiersza (UWAGA: format "6,000" oznacza 6 sztuk, nie 6000 — przecinek to separator dziesiętny lub tysięczny w formacie polskim, zawsze zwróć liczbę całkowitą bez przecinków)
-- Jeden wiersz dokumentu = jeden obiekt JSON
+- "ilosc" = liczba sztuk (format "6,000" = 6 sztuk, nie 6000)
+- Jeden wiersz dokumentu = jeden obiekt w pozycje
 - NIE pomijaj żadnych pozycji towarowych`;
 
   const resp=await fetch(endpoint,{
@@ -739,31 +793,36 @@ Zasady:
   const data=await resp.json();
   const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
   const clean=text.replace(/```json\s*/gi,'').replace(/```\s*/gi,'').trim();
-  let items;
-  try{items=JSON.parse(clean);}catch{throw new Error('Nieoczekiwana odpowiedź: '+clean.substring(0,100));}
-  if(!Array.isArray(items)) throw new Error('Claude zwrócił nieoczekiwany format');
-  return items;
+  let parsed;
+  try{parsed=JSON.parse(clean);}catch{throw new Error('Nieoczekiwana odpowiedź: '+clean.substring(0,100));}
+  // Order mode returns {klient, pozycje}, dostawa returns array
+  if(mode==='order'){
+    if(Array.isArray(parsed)) return {klient:{}, pozycje:parsed};
+    if(parsed && parsed.pozycje) return parsed;
+    throw new Error('Claude zwrócił nieoczekiwany format');
+  }
+  if(!Array.isArray(parsed)) throw new Error('Claude zwrócił nieoczekiwany format');
+  return parsed;
 }
 
 // ── BaseLinker API via Worker
 async function blApi(token, workerUrl, method, params) {
-  const endpoint=workerUrl+'/v1/messages';
-  // Use worker as generic proxy — call BL directly from browser via worker CORS headers
-  // Actually call BL API directly (worker just adds CORS for Anthropic, BL doesn't need it)
-  const body=new URLSearchParams();
-  body.append('token',token);
-  body.append('method',method);
-  body.append('parameters',JSON.stringify(params));
+  // Route through Cloudflare Worker to avoid CORS
+  const endpoint = workerUrl + '/bl';
+  const body = new URLSearchParams();
+  body.append('token', token);
+  body.append('method', method);
+  body.append('parameters', JSON.stringify(params));
 
-  const resp=await fetch('https://api.baselinker.com/connector.php',{
-    method:'POST',
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:body.toString()
+  const resp = await fetch(endpoint, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: body.toString()
   });
 
-  if(!resp.ok) throw new Error('BL HTTP '+resp.status);
-  const data=await resp.json();
-  if(data.status==='ERROR') throw new Error(data.error_message||'BaseLinker error '+data.error_code);
+  if (!resp.ok) throw new Error('BL HTTP ' + resp.status);
+  const data = await resp.json();
+  if (data.status === 'ERROR') throw new Error(data.error_message || 'BaseLinker error ' + data.error_code);
   return data;
 }
 
