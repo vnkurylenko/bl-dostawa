@@ -662,9 +662,15 @@ $('o-createBtn').addEventListener('click', async ()=>{
   const statusId = $('o-status').value;
   if(!statusId){oLog('Wybierz status zamówienia!','err');$('o-createBtn').disabled=false;$('o-createBtn').classList.remove('loading');$('o-createBtn').querySelector('.btn-label').textContent='Utwórz zamówienie w BaseLinker →';return;}
 
+  const sourceEl = $('o-source');
+  const sourceText = sourceEl.options[sourceEl.selectedIndex]?.text || '';
+  // source name is before " (" in option text
+  const sourceName = sourceText.replace(/\s*\(\d+\)$/, '').trim();
+
   const params={
-    order_source_id: parseInt(sourceId),
     order_status_id: parseInt(statusId),
+    order_source: sourceName,
+    order_source_id: parseInt(sourceId),
     date_add: Math.floor(Date.now()/1000),
     currency: 'PLN',
     payment_method: 'przelew',
