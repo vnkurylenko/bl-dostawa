@@ -3,188 +3,178 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DIVNA — Faktury → BaseLinker CSV</title>
+<title>DIVNA — BaseLinker Tools</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:        #0e0f11;
-    --bg2:       #16181c;
-    --bg3:       #1e2026;
-    --border:    #2a2d35;
-    --border2:   #383c47;
-    --text:      #e8eaf0;
-    --text2:     #8b90a0;
-    --text3:     #555a6a;
-    --green:     #1a9e75;
-    --green-bg:  #0d2b22;
-    --green-txt: #4ecca8;
-    --red:       #c0392b;
-    --red-bg:    #2b1212;
-    --red-txt:   #f1948a;
-    --blue:      #2980b9;
-    --blue-bg:   #0d1e2b;
-    --blue-txt:  #7fc4ed;
-    --amber:     #d68910;
-    --amber-bg:  #2b2007;
-    --amber-txt: #f5cba7;
-    --mono: 'IBM Plex Mono', monospace;
-    --sans: 'IBM Plex Sans', sans-serif;
+    --bg:#0e0f11; --bg2:#16181c; --bg3:#1e2026;
+    --border:#2a2d35; --border2:#383c47;
+    --text:#e8eaf0; --text2:#8b90a0; --text3:#555a6a;
+    --green:#1a9e75; --green-bg:#0d2b22; --green-txt:#4ecca8;
+    --red:#c0392b; --red-bg:#2b1212; --red-txt:#f1948a;
+    --blue:#2980b9; --blue-bg:#0d1e2b; --blue-txt:#7fc4ed;
+    --amber:#d68910; --amber-bg:#2b2007; --amber-txt:#f5cba7;
+    --purple:#7c3aed; --purple-bg:#1a0f2e; --purple-txt:#c4b5fd;
+    --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
   }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
-  body { display: flex; flex-direction: column; min-height: 100vh; }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  body{display:flex;flex-direction:column;min-height:100vh}
 
-  .topbar {
-    border-bottom: 1px solid var(--border);
-    padding: 0 2rem;
-    height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--bg);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .logo { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: var(--text); display: flex; align-items: center; gap: 10px; }
-  .logo-divider { width: 1px; height: 16px; background: var(--border2); }
-  .logo-sub { font-weight: 400; color: var(--text3); font-size: 11px; letter-spacing: 0.12em; }
-  .badge { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border-radius: 3px; border: 1px solid var(--border2); color: var(--text3); letter-spacing: 0.05em; }
+  /* TOPBAR */
+  .topbar{border-bottom:1px solid var(--border);padding:0 2rem;height:52px;display:flex;align-items:center;justify-content:space-between;background:var(--bg);position:sticky;top:0;z-index:100}
+  .logo{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.08em;color:var(--text);display:flex;align-items:center;gap:10px}
+  .logo-divider{width:1px;height:16px;background:var(--border2)}
+  .logo-sub{font-weight:400;color:var(--text3);font-size:11px;letter-spacing:0.12em}
+  .badge{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:3px;border:1px solid var(--border2);color:var(--text3)}
 
-  .main { flex: 1; padding: 1.5rem 2rem; display: flex; flex-direction: column; gap: 1rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+  /* MODE TABS */
+  .mode-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 2rem;background:var(--bg)}
+  .tab{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:0.08em;padding:12px 20px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text3);transition:color 0.15s,border-color 0.15s;border-top:none;border-left:none;border-right:none;background:none}
+  .tab:hover{color:var(--text2)}
+  .tab.active{color:var(--text);border-bottom-color:var(--text)}
+  .tab.active-order{color:var(--purple-txt);border-bottom-color:var(--purple)}
 
-  /* CONFIG SECTION */
-  .config-section {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .config-row { display: flex; align-items: center; gap: 12px; }
-  .cfg-label { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text3); letter-spacing: 0.1em; white-space: nowrap; min-width: 130px; }
-  .cfg-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 5px; color: var(--text); font-family: var(--mono); font-size: 12px; padding: 7px 12px; outline: none; transition: border-color 0.15s; }
-  .cfg-input:focus { border-color: var(--border2); }
-  .cfg-input::placeholder { color: var(--text3); }
-  .cfg-hint { font-size: 11px; color: var(--text3); white-space: nowrap; }
-  .cfg-hint a { color: var(--blue-txt); text-decoration: none; }
-  .cfg-hint a:hover { text-decoration: underline; }
-  .cfg-divider { height: 1px; background: var(--border); }
-  .worker-status { font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 3px; }
-  .ws-ok  { background: var(--green-bg); color: var(--green-txt); }
-  .ws-bad { background: var(--red-bg);   color: var(--red-txt); }
+  .main{flex:1;padding:1.5rem 2rem;display:flex;flex-direction:column;gap:1rem;max-width:1200px;margin:0 auto;width:100%}
+
+  /* CONFIG */
+  .config-section{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+  .config-row{display:flex;align-items:center;gap:12px}
+  .cfg-label{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text3);letter-spacing:0.1em;white-space:nowrap;min-width:150px}
+  .cfg-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 12px;outline:none;transition:border-color 0.15s}
+  .cfg-input:focus{border-color:var(--border2)}
+  .cfg-input::placeholder{color:var(--text3)}
+  .cfg-hint{font-size:11px;color:var(--text3);white-space:nowrap}
+  .cfg-hint a{color:var(--blue-txt);text-decoration:none}
+  .cfg-hint a:hover{text-decoration:underline}
+  .cfg-divider{height:1px;background:var(--border)}
 
   /* PANELS */
-  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; flex: 1; }
-  @media (max-width: 768px) { .panels { grid-template-columns: 1fr; } }
-
-  .panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; }
-  .panel-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .panel-num { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.15em; margin-right: 8px; }
-  .panel-title { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text); letter-spacing: 0.04em; }
-  .panel-count { font-family: var(--mono); font-size: 11px; color: var(--text3); }
-  .panel-body { padding: 14px; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:1rem;flex:1}
+  @media(max-width:768px){.panels{grid-template-columns:1fr}}
+  .panel{background:var(--bg2);border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+  .panel-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .panel-num{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.15em;margin-right:8px}
+  .panel-title{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--text);letter-spacing:0.04em}
+  .panel-count{font-family:var(--mono);font-size:11px;color:var(--text3)}
+  .panel-body{padding:14px;flex:1;display:flex;flex-direction:column;gap:10px}
 
   /* DROP ZONE */
-  .drop-zone { border: 1px dashed var(--border2); border-radius: 8px; padding: 2rem 1.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: background 0.15s, border-color 0.15s; text-align: center; }
-  .drop-zone:hover { background: var(--bg3); border-color: var(--text3); }
-  .drop-zone.dragover { background: var(--blue-bg); border-color: var(--blue); border-style: solid; }
-  .drop-icon { width: 36px; height: 36px; color: var(--text3); transition: color 0.15s; }
-  .drop-zone:hover .drop-icon { color: var(--text2); }
-  .drop-zone.dragover .drop-icon { color: var(--blue-txt); }
-  .drop-text { font-size: 13px; color: var(--text2); line-height: 1.5; }
-  .drop-sub { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.08em; }
-  input[type=file] { display: none; }
+  .drop-zone{border:1px dashed var(--border2);border-radius:8px;padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:background 0.15s,border-color 0.15s;text-align:center}
+  .drop-zone:hover{background:var(--bg3);border-color:var(--text3)}
+  .drop-zone.dragover{background:var(--blue-bg);border-color:var(--blue);border-style:solid}
+  .drop-icon{width:36px;height:36px;color:var(--text3);transition:color 0.15s}
+  .drop-zone:hover .drop-icon{color:var(--text2)}
+  .drop-zone.dragover .drop-icon{color:var(--blue-txt)}
+  .drop-text{font-size:13px;color:var(--text2);line-height:1.5}
+  .drop-sub{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.08em}
+  input[type=file]{display:none}
 
   /* FILE LIST */
-  .file-list { display: flex; flex-direction: column; gap: 5px; max-height: 200px; overflow-y: auto; }
-  .file-list::-webkit-scrollbar { width: 4px; }
-  .file-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-  .file-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--bg3); border-radius: 6px; border: 1px solid var(--border); transition: border-color 0.2s; }
-  .file-item.done    { border-color: var(--green); }
-  .file-item.error   { border-color: var(--red); }
-  .file-item.parsing { border-color: var(--blue); }
-  .fi-icon { flex-shrink: 0; width: 15px; height: 15px; color: var(--red-txt); }
-  .fi-name { flex: 1; font-family: var(--mono); font-size: 11px; color: var(--text2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .fi-badge { font-family: var(--mono); font-size: 10px; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.05em; flex-shrink: 0; }
-  .fi-badge.pending  { background: var(--bg); color: var(--text3); border: 1px solid var(--border); }
-  .fi-badge.parsing  { background: var(--blue-bg); color: var(--blue-txt); }
-  .fi-badge.done     { background: var(--green-bg); color: var(--green-txt); }
-  .fi-badge.error    { background: var(--red-bg); color: var(--red-txt); }
-  .fi-remove { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 13px; line-height: 1; padding: 4px 6px; border-radius: 3px; flex-shrink: 0; transition: color 0.1s; position: relative; z-index: 10; }
-  .fi-remove:hover { color: var(--red-txt); }
+  .file-list{display:flex;flex-direction:column;gap:5px;max-height:180px;overflow-y:auto}
+  .file-list::-webkit-scrollbar{width:4px}
+  .file-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+  .file-item{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);transition:border-color 0.2s}
+  .file-item.done{border-color:var(--green)}
+  .file-item.error{border-color:var(--red)}
+  .file-item.parsing{border-color:var(--blue)}
+  .fi-icon{flex-shrink:0;width:15px;height:15px;color:var(--red-txt)}
+  .fi-name{flex:1;font-family:var(--mono);font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fi-badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;letter-spacing:0.05em;flex-shrink:0}
+  .fi-badge.pending{background:var(--bg);color:var(--text3);border:1px solid var(--border)}
+  .fi-badge.parsing{background:var(--blue-bg);color:var(--blue-txt)}
+  .fi-badge.done{background:var(--green-bg);color:var(--green-txt)}
+  .fi-badge.error{background:var(--red-bg);color:var(--red-txt)}
+  .fi-remove{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;line-height:1;padding:4px 6px;border-radius:3px;flex-shrink:0;transition:color 0.1s;position:relative;z-index:10}
+  .fi-remove:hover{color:var(--red-txt)}
 
   /* BUTTONS */
-  .parse-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; background: var(--text); color: var(--bg); border: none; border-radius: 7px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
-  .parse-btn:hover:not(:disabled) { opacity: 0.88; }
-  .parse-btn:active:not(:disabled) { transform: scale(0.99); }
-  .parse-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  .parse-btn .spinner { width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.2); border-top-color: var(--bg); border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
-  .parse-btn.loading .spinner { display: block; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .parse-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;background:var(--text);color:var(--bg);border:none;border-radius:7px;font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.04em;cursor:pointer;transition:opacity 0.15s,transform 0.1s}
+  .parse-btn:hover:not(:disabled){opacity:0.88}
+  .parse-btn:active:not(:disabled){transform:scale(0.99)}
+  .parse-btn:disabled{opacity:0.3;cursor:not-allowed}
+  .parse-btn .spinner{width:14px;height:14px;border:2px solid rgba(0,0,0,0.2);border-top-color:var(--bg);border-radius:50%;animation:spin 0.7s linear infinite;display:none}
+  .parse-btn.loading .spinner{display:block}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
-  .download-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; background: var(--green); color: #fff; border: none; border-radius: 7px; font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
-  .download-btn:hover:not(:disabled) { opacity: 0.88; }
-  .download-btn:active:not(:disabled) { transform: scale(0.99); }
-  .download-btn:disabled { opacity: 0.3; cursor: not-allowed; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+  .download-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;background:var(--green);color:#fff;border:none;border-radius:7px;font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.04em;cursor:pointer;transition:opacity 0.15s,transform 0.1s}
+  .download-btn:hover:not(:disabled){opacity:0.88}
+  .download-btn:active:not(:disabled){transform:scale(0.99)}
+  .download-btn:disabled{opacity:0.3;cursor:not-allowed;background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+
+  .order-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px;background:var(--purple);color:#fff;border:none;border-radius:7px;font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0.04em;cursor:pointer;transition:opacity 0.15s,transform 0.1s}
+  .order-btn:hover:not(:disabled){opacity:0.88}
+  .order-btn:active:not(:disabled){transform:scale(0.99)}
+  .order-btn:disabled{opacity:0.3;cursor:not-allowed;background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+  .order-btn .spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none}
+  .order-btn.loading .spinner{display:block}
 
   /* LOG */
-  .log { font-family: var(--mono); font-size: 10px; color: var(--text3); line-height: 1.8; height: 54px; overflow-y: auto; }
-  .log::-webkit-scrollbar { width: 3px; }
-  .log::-webkit-scrollbar-thumb { background: var(--border); }
-  .log-ok   { color: var(--green-txt); }
-  .log-err  { color: var(--red-txt); }
-  .log-info { color: var(--blue-txt); }
+  .log{font-family:var(--mono);font-size:10px;color:var(--text3);line-height:1.8;height:54px;overflow-y:auto}
+  .log::-webkit-scrollbar{width:3px}
+  .log::-webkit-scrollbar-thumb{background:var(--border)}
+  .log-ok{color:var(--green-txt)}
+  .log-err{color:var(--red-txt)}
+  .log-info{color:var(--blue-txt)}
 
   /* RESULTS */
-  .empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: var(--text3); font-size: 13px; text-align: center; padding: 2.5rem 1.5rem; }
-  .empty-icon { width: 38px; height: 38px; color: var(--border2); }
+  .empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--text3);font-size:13px;text-align:center;padding:2.5rem 1.5rem}
+  .empty-icon{width:38px;height:38px;color:var(--border2)}
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .stat{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 10px;text-align:center}
+  .stat-val{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--text);line-height:1.2}
+  .stat-lbl{font-size:10px;color:var(--text3);margin-top:2px;letter-spacing:0.06em;font-family:var(--mono)}
 
-  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-  .stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px; text-align: center; }
-  .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text); line-height: 1.2; }
-  .stat-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; letter-spacing: 0.06em; font-family: var(--mono); }
+  .csv-table-wrap{flex:1;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:7px;min-height:140px;max-height:220px}
+  .csv-table-wrap::-webkit-scrollbar{width:4px}
+  .csv-table-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+  table.csv-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+  table.csv-table thead{position:sticky;top:0;background:var(--bg3);z-index:1}
+  table.csv-table th{padding:7px 10px;color:var(--text3);font-weight:500;text-align:left;border-bottom:1px solid var(--border);letter-spacing:0.08em;font-size:10px}
+  table.csv-table td{padding:5px 10px;color:var(--text2);border-bottom:1px solid var(--border)}
+  table.csv-table tr:last-child td{border-bottom:none}
+  table.csv-table td:first-child{color:var(--green-txt)}
+  table.csv-table td:nth-child(2){color:var(--text)}
+  table.csv-table tbody tr:hover td{background:var(--bg2)}
+  .more-rows{padding:6px 10px;font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;border-top:1px solid var(--border)}
 
-  .csv-table-wrap { flex: 1; overflow-y: auto; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; min-height: 160px; max-height: 260px; }
-  .csv-table-wrap::-webkit-scrollbar { width: 4px; }
-  .csv-table-wrap::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-  table.csv-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
-  table.csv-table thead { position: sticky; top: 0; background: var(--bg3); z-index: 1; }
-  table.csv-table th { padding: 7px 10px; color: var(--text3); font-weight: 500; text-align: left; border-bottom: 1px solid var(--border); letter-spacing: 0.08em; font-size: 10px; }
-  table.csv-table td { padding: 5px 10px; color: var(--text2); border-bottom: 1px solid var(--border); }
-  table.csv-table tr:last-child td { border-bottom: none; }
-  table.csv-table td:first-child { color: var(--green-txt); }
-  table.csv-table td:nth-child(2) { color: var(--text); }
-  table.csv-table td:nth-child(3) { color: var(--amber-txt); }
-  table.csv-table tbody tr:hover td { background: var(--bg2); }
-  .more-rows { padding: 6px 10px; font-family: var(--mono); font-size: 10px; color: var(--text3); text-align: center; border-top: 1px solid var(--border); }
+  .warn-box{background:var(--amber-bg);border:1px solid var(--amber);border-radius:6px;padding:8px 12px;font-size:11px;color:var(--amber-txt);font-family:var(--mono);display:none;line-height:1.6}
+  .success-box{background:var(--green-bg);border:1px solid var(--green);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--green-txt);font-family:var(--mono);display:none;line-height:1.8}
 
-  .warn-box { background: var(--amber-bg); border: 1px solid var(--amber); border-radius: 6px; padding: 8px 12px; font-size: 11px; color: var(--amber-txt); font-family: var(--mono); display: none; line-height: 1.6; }
+  /* ORDER FORM */
+  .order-form{display:flex;flex-direction:column;gap:8px}
+  .form-row{display:flex;gap:8px}
+  .form-row .cfg-input{flex:1}
+  .form-label{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.08em;margin-bottom:2px}
+  .form-group{display:flex;flex-direction:column;gap:3px;flex:1}
+  .source-select{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 12px;outline:none;cursor:pointer}
+  .source-select option{background:var(--bg3)}
 
-  footer { border-top: 1px solid var(--border); padding: 12px 2rem; display: flex; align-items: center; justify-content: space-between; }
-  footer span { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.04em; }
-  .security-note { font-family: var(--mono); font-size: 10px; color: var(--text3); display: flex; align-items: center; gap: 6px; }
-  .security-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; }
+  footer{border-top:1px solid var(--border);padding:12px 2rem;display:flex;align-items:center;justify-content:space-between}
+  footer span{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:0.04em}
+  .security-note{font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;align-items:center;gap:6px}
+  .security-dot{width:6px;height:6px;background:var(--green);border-radius:50%}
+
+  .page{display:none}
+  .page.active{display:flex;flex-direction:column;gap:1rem;flex:1}
 </style>
 </head>
 <body>
 
 <header class="topbar">
-  <div class="logo">
-    DIVNA
-    <div class="logo-divider"></div>
-    <span class="logo-sub">FAKTURY → BASELINKER CSV</span>
-  </div>
-  <div class="badge">v1.1</div>
+  <div class="logo">DIVNA<div class="logo-divider"></div><span class="logo-sub">BASELINKER TOOLS</span></div>
+  <div class="badge">v2.0</div>
 </header>
+
+<div class="mode-tabs">
+  <button class="tab active" id="tabDostawa" onclick="switchMode('dostawa')">DOSTAWA PDF → CSV</button>
+  <button class="tab" id="tabOrder" onclick="switchMode('order')">ZAMÓWIENIE KLIENTA → BASELINKER</button>
+</div>
 
 <main class="main">
 
-  <!-- CONFIG -->
+  <!-- SHARED CONFIG -->
   <div class="config-section">
     <div class="config-row">
       <span class="cfg-label">ANTHROPIC API KEY</span>
@@ -194,382 +184,632 @@
     <div class="cfg-divider"></div>
     <div class="config-row">
       <span class="cfg-label">WORKER URL</span>
-      <input type="text" class="cfg-input" id="workerUrl" placeholder="https://twoj-worker.twoja-nazwa.workers.dev" spellcheck="false">
-      <span class="cfg-hint" id="workerHint">
-        <a href="https://workers.cloudflare.com" target="_blank">Jak skonfigurować →</a>
-      </span>
+      <input type="text" class="cfg-input" id="workerUrl" placeholder="https://bl-proxy.xxx.workers.dev" spellcheck="false">
+      <span class="cfg-hint"><a href="https://workers.cloudflare.com" target="_blank">Cloudflare →</a></span>
+    </div>
+    <div class="cfg-divider" id="blTokenRow-divider"></div>
+    <div class="config-row" id="blTokenRow">
+      <span class="cfg-label">BASELINKER TOKEN</span>
+      <input type="password" class="cfg-input" id="blToken" placeholder="xxxxx-xxxxx-XXXXXXXX..." autocomplete="off" spellcheck="false">
+      <span class="cfg-hint"><a href="https://app.baselinker.com/index.php?module=MyAccount" target="_blank">Moje konto →</a></span>
     </div>
   </div>
 
-  <!-- PANELS -->
-  <div class="panels">
-
-    <!-- LEFT: UPLOAD -->
-    <div class="panel">
-      <div class="panel-header">
-        <div>
-          <span class="panel-num">01</span>
-          <span class="panel-title">FAKTURY PDF</span>
+  <!-- PAGE: DOSTAWA -->
+  <div class="page active" id="pageDostawa">
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-header">
+          <div><span class="panel-num">01</span><span class="panel-title">FAKTURY PDF</span></div>
+          <span class="panel-count" id="d-fileCount">0 plików</span>
         </div>
-        <span class="panel-count" id="fileCount">0 plików</span>
+        <div class="panel-body">
+          <div class="drop-zone" id="d-dropZone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+              <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <div class="drop-text">Przeciągnij faktury PDF tutaj<br>lub kliknij aby wybrać</div>
+            <div class="drop-sub">.PDF · wiele plików jednocześnie</div>
+            <input type="file" id="d-fileInput" multiple accept=".pdf">
+          </div>
+          <div class="file-list" id="d-fileList"></div>
+          <button class="parse-btn" id="d-parseBtn" disabled>
+            <div class="spinner"></div><span class="btn-label">Parsuj faktury →</span>
+          </button>
+          <div class="log" id="d-log"></div>
+        </div>
       </div>
-      <div class="panel-body">
-        <div class="drop-zone" id="dropZone">
-          <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
-            <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-          </svg>
-          <div class="drop-text">Przeciągnij faktury PDF tutaj<br>lub kliknij aby wybrać</div>
-          <div class="drop-sub">.PDF · wiele plików jednocześnie</div>
-          <input type="file" id="fileInput" multiple accept=".pdf">
+
+      <div class="panel">
+        <div class="panel-header">
+          <div><span class="panel-num">02</span><span class="panel-title">EKSPORT CSV</span></div>
+          <span class="panel-count" id="d-resultCount">—</span>
         </div>
-
-        <div class="file-list" id="fileList"></div>
-
-        <button class="parse-btn" id="parseBtn" disabled>
-          <div class="spinner"></div>
-          <span class="btn-label">Parsuj faktury →</span>
-        </button>
-
-        <div class="log" id="logArea"></div>
+        <div class="panel-body">
+          <div class="empty-state" id="d-emptyState">
+            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M9 17H7A5 5 0 017 7h10a5 5 0 110 10h-2M9 12h6m-3-3v6"/>
+            </svg>
+            <span>CSV pojawi się tu po przetworzeniu faktur</span>
+          </div>
+          <div id="d-resultState" style="display:none;flex-direction:column;gap:10px;flex:1">
+            <div class="stats-row">
+              <div class="stat"><div class="stat-val" id="d-statLines">0</div><div class="stat-lbl">POZYCJI</div></div>
+              <div class="stat"><div class="stat-val" id="d-statQty">0</div><div class="stat-lbl">SZT ŁĄCZNIE</div></div>
+              <div class="stat"><div class="stat-val" id="d-statSkipped">0</div><div class="stat-lbl">POMINIĘTO</div></div>
+            </div>
+            <div class="warn-box" id="d-warnBox"></div>
+            <div class="csv-table-wrap">
+              <table class="csv-table">
+                <thead><tr><th>EAN</th><th>ILOŚĆ</th><th>CENA BRUTTO</th><th colspan="4" style="color:var(--border2)">···</th></tr></thead>
+                <tbody id="d-csvBody"></tbody>
+              </table>
+              <div class="more-rows" id="d-moreRows" style="display:none"></div>
+            </div>
+          </div>
+          <button class="download-btn" id="d-downloadBtn" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Pobierz CSV dla BaseLinker
+          </button>
+        </div>
       </div>
     </div>
-
-    <!-- RIGHT: EXPORT -->
-    <div class="panel">
-      <div class="panel-header">
-        <div>
-          <span class="panel-num">02</span>
-          <span class="panel-title">EKSPORT CSV</span>
-        </div>
-        <span class="panel-count" id="resultCount">—</span>
-      </div>
-      <div class="panel-body">
-
-        <div class="empty-state" id="emptyState">
-          <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-            <path d="M9 17H7A5 5 0 017 7h10a5 5 0 110 10h-2M9 12h6m-3-3v6"/>
-          </svg>
-          <span>CSV pojawi się tu po<br>przetworzeniu faktur</span>
-        </div>
-
-        <div id="resultState" style="display:none; flex-direction:column; gap:10px; flex:1">
-          <div class="stats-row">
-            <div class="stat"><div class="stat-val" id="statLines">0</div><div class="stat-lbl">POZYCJI</div></div>
-            <div class="stat"><div class="stat-val" id="statQty">0</div><div class="stat-lbl">SZT ŁĄCZNIE</div></div>
-            <div class="stat"><div class="stat-val" id="statSkipped">0</div><div class="stat-lbl">POMINIĘTO</div></div>
-          </div>
-
-          <div class="warn-box" id="warnBox"></div>
-
-          <div class="csv-table-wrap">
-            <table class="csv-table">
-              <thead>
-                <tr><th>EAN</th><th>ILOŚĆ</th><th>CENA BRUTTO</th><th colspan="4" style="color:var(--border2)">···</th></tr>
-              </thead>
-              <tbody id="csvTableBody"></tbody>
-            </table>
-            <div class="more-rows" id="moreRows" style="display:none"></div>
-          </div>
-        </div>
-
-        <button class="download-btn" id="downloadBtn" disabled>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-          </svg>
-          Pobierz CSV dla BaseLinker
-        </button>
-
-      </div>
-    </div>
-
   </div>
+
+  <!-- PAGE: ORDER -->
+  <div class="page" id="pageOrder">
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-header">
+          <div><span class="panel-num">01</span><span class="panel-title">ZAMÓWIENIE PDF</span></div>
+          <span class="panel-count" id="o-fileCount">—</span>
+        </div>
+        <div class="panel-body">
+          <div class="drop-zone" id="o-dropZone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+              <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <div class="drop-text">Przeciągnij zamówienie PDF klienta<br>lub kliknij aby wybrać</div>
+            <div class="drop-sub">.PDF · jeden plik</div>
+            <input type="file" id="o-fileInput" accept=".pdf">
+          </div>
+          <div class="file-list" id="o-fileList"></div>
+
+          <div class="order-form">
+            <div class="form-row">
+              <div class="form-group">
+                <div class="form-label">ŹRÓDŁO ZAMÓWIENIA</div>
+                <select class="source-select" id="o-source">
+                  <option value="">— wczytaj źródła →</option>
+                </select>
+              </div>
+              <button class="parse-btn" style="width:auto;padding:7px 14px;margin-top:16px;font-size:11px" id="o-loadSources">Wczytaj</button>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <div class="form-label">IMIĘ I NAZWISKO</div>
+                <input type="text" class="cfg-input" id="o-name" placeholder="Jan Kowalski">
+              </div>
+              <div class="form-group">
+                <div class="form-label">EMAIL</div>
+                <input type="text" class="cfg-input" id="o-email" placeholder="jan@firma.pl">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <div class="form-label">TELEFON</div>
+                <input type="text" class="cfg-input" id="o-phone" placeholder="+48 500 000 000">
+              </div>
+              <div class="form-group">
+                <div class="form-label">NIP</div>
+                <input type="text" class="cfg-input" id="o-nip" placeholder="0000000000">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <div class="form-label">ULICA I NUMER</div>
+                <input type="text" class="cfg-input" id="o-street" placeholder="ul. Przykładowa 1">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <div class="form-label">KOD POCZTOWY</div>
+                <input type="text" class="cfg-input" id="o-postcode" placeholder="00-000" style="max-width:120px">
+              </div>
+              <div class="form-group">
+                <div class="form-label">MIASTO</div>
+                <input type="text" class="cfg-input" id="o-city" placeholder="Warszawa">
+              </div>
+            </div>
+          </div>
+
+          <button class="parse-btn" id="o-parseBtn" disabled>
+            <div class="spinner"></div><span class="btn-label">Parsuj zamówienie →</span>
+          </button>
+          <div class="log" id="o-log"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div><span class="panel-num">02</span><span class="panel-title">PODGLĄD ZAMÓWIENIA</span></div>
+          <span class="panel-count" id="o-resultCount">—</span>
+        </div>
+        <div class="panel-body">
+          <div class="empty-state" id="o-emptyState">
+            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M16 11c0 2.21-1.79 4-4 4s-4-1.79-4-4 1.79-4 4-4 4 1.79 4 4zM3 20c0-3.31 3.13-6 7-6h4c3.87 0 7 2.69 7 6"/>
+            </svg>
+            <span>Pozycje zamówienia pojawią się tu<br>po sparsowaniu PDF</span>
+          </div>
+          <div id="o-resultState" style="display:none;flex-direction:column;gap:10px;flex:1">
+            <div class="stats-row">
+              <div class="stat"><div class="stat-val" id="o-statLines">0</div><div class="stat-lbl">POZYCJI</div></div>
+              <div class="stat"><div class="stat-val" id="o-statQty">0</div><div class="stat-lbl">SZT ŁĄCZNIE</div></div>
+              <div class="stat"><div class="stat-val" id="o-statSkipped">0</div><div class="stat-lbl">BEZ EAN</div></div>
+            </div>
+            <div class="warn-box" id="o-warnBox"></div>
+            <div class="success-box" id="o-successBox"></div>
+            <div class="csv-table-wrap">
+              <table class="csv-table">
+                <thead><tr><th>EAN</th><th>ILOŚĆ</th><th>NAZWA</th></tr></thead>
+                <tbody id="o-csvBody"></tbody>
+              </table>
+              <div class="more-rows" id="o-moreRows" style="display:none"></div>
+            </div>
+          </div>
+          <button class="order-btn" id="o-createBtn" disabled>
+            <div class="spinner"></div>
+            <span class="btn-label">Utwórz zamówienie w BaseLinker →</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <footer>
-  <span>DIVNA / BL DOSTAWA · Dane nie są wysyłane na żaden serwer zewnętrzny</span>
-  <div class="security-note">
-    <div class="security-dot"></div>
-    Klucz API przechowywany lokalnie w przeglądarce
-  </div>
+  <span>DIVNA / BL TOOLS · Dane nie są wysyłane na żaden zewnętrzny serwer</span>
+  <div class="security-note"><div class="security-dot"></div>Tokeny przechowywane lokalnie w przeglądarce</div>
 </footer>
 
 <script>
 const $ = id => document.getElementById(id);
-const dropZone    = $('dropZone');
-const fileInput   = $('fileInput');
-const fileList    = $('fileList');
-const parseBtn    = $('parseBtn');
-const logArea     = $('logArea');
-const emptyState  = $('emptyState');
-const resultState = $('resultState');
-const downloadBtn = $('downloadBtn');
-const apiKeyEl    = $('apiKey');
-const workerUrlEl = $('workerUrl');
 
-let files = [];
-let csvContent = '';
-
-// Restore from localStorage
-apiKeyEl.value   = localStorage.getItem('bl_api_key')    || '';
-workerUrlEl.value= localStorage.getItem('bl_worker_url') || '';
-
-apiKeyEl.addEventListener('input',    () => localStorage.setItem('bl_api_key',    apiKeyEl.value.trim()));
-workerUrlEl.addEventListener('input', () => localStorage.setItem('bl_worker_url', workerUrlEl.value.trim()));
-
-// Drop zone
-dropZone.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', e => addFiles([...e.target.files]));
-dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('dragover');
-  addFiles([...e.dataTransfer.files].filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')));
+// ── PERSIST
+const KEYS = ['apiKey','workerUrl','blToken'];
+KEYS.forEach(k => {
+  const el = $(k);
+  el.value = localStorage.getItem('bl_'+k) || '';
+  el.addEventListener('input', () => localStorage.setItem('bl_'+k, el.value.trim()));
 });
 
-function addFiles(newFiles) {
-  for (const f of newFiles) {
-    if (!files.find(x => x.name === f.name)) files.push(f);
-  }
-  renderFileList();
+// ── MODE SWITCH
+let currentMode = 'dostawa';
+function switchMode(mode) {
+  currentMode = mode;
+  $('pageDostawa').classList.toggle('active', mode==='dostawa');
+  $('pageOrder').classList.toggle('active', mode==='order');
+  $('tabDostawa').classList.toggle('active', mode==='dostawa');
+  $('tabDostawa').classList.toggle('active-order', false);
+  $('tabOrder').classList.toggle('active', mode==='order');
+  $('tabOrder').classList.toggle('active-order', mode==='order');
+  $('blTokenRow').style.display = mode==='order' ? 'flex' : 'none';
+  $('blTokenRow-divider').style.display = mode==='order' ? 'block' : 'none';
+}
+switchMode('dostawa');
+
+// ══════════════════════════════════════════════
+// DOSTAWA MODULE
+// ══════════════════════════════════════════════
+let dFiles = [];
+let dCsvContent = '';
+
+setupDropZone('d-dropZone','d-fileInput', true, f => { addDFiles(f); });
+
+function addDFiles(newFiles) {
+  newFiles.forEach(f => { if (!dFiles.find(x=>x.name===f.name)) dFiles.push(f); });
+  renderDFileList();
+}
+function removeDFile(name) { dFiles = dFiles.filter(f=>f.name!==name); renderDFileList(); }
+function renderDFileList() {
+  const fl = $('d-fileList'); fl.innerHTML='';
+  const n=dFiles.length;
+  $('d-fileCount').textContent = n+(n===1?' plik':n<5?' pliki':' plików');
+  dFiles.forEach(f=>{
+    const item=document.createElement('div'); item.className='file-item'; item.id='dfi-'+sid(f.name);
+    item.innerHTML=`<svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    <span class="fi-name" title="${esc(f.name)}">${esc(f.name)}</span>
+    <span class="fi-badge pending" id="dfib-${sid(f.name)}">czeka</span>
+    <button class="fi-remove" title="Usuń">✕</button>`;
+    item.querySelector('.fi-remove').addEventListener('click',e=>{e.stopPropagation();removeDFile(f.name);});
+    fl.appendChild(item);
+  });
+  $('d-parseBtn').disabled = dFiles.length===0;
 }
 
-function removeFile(name) {
-  files = files.filter(f => f.name !== name);
-  renderFileList();
-}
+$('d-parseBtn').addEventListener('click', async ()=>{
+  const apiKey=$('apiKey').value.trim(), workerUrl=$('workerUrl').value.trim().replace(/\/$/,'');
+  if(!apiKey){dLog('Brak klucza API!','err');return;}
+  if(!workerUrl){dLog('Brak Worker URL!','err');return;}
+  if(!dFiles.length) return;
 
-function renderFileList() {
-  fileList.innerHTML = '';
-  const n = files.length;
-  $('fileCount').textContent = n + (n === 1 ? ' plik' : n < 5 ? ' pliki' : ' plików');
-  for (const f of files) {
-    const item = document.createElement('div');
-    item.className = 'file-item';
-    item.id = 'fi-' + sid(f.name);
-    item.innerHTML = `
-      <svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-      </svg>
-      <span class="fi-name" title="${esc(f.name)}">${esc(f.name)}</span>
-      <span class="fi-badge pending" id="fib-${sid(f.name)}">czeka</span>
-      <button class="fi-remove" data-fname="${esc(f.name)}" title="Usuń">✕</button>
-    `;
-    item.querySelector('.fi-remove').addEventListener('click', (e) => {
-      e.stopPropagation();
-      removeFile(f.name);
-    });
-    fileList.appendChild(item);
-  }
-  parseBtn.disabled = files.length === 0;
-}
+  $('d-parseBtn').disabled=true; $('d-parseBtn').classList.add('loading');
+  $('d-parseBtn').querySelector('.btn-label').textContent='Parsowanie...';
+  $('d-downloadBtn').disabled=true;
+  $('d-log').innerHTML='';
+  $('d-emptyState').style.display='flex'; $('d-resultState').style.display='none';
+  dCsvContent='';
 
-function setFileStatus(name, label, cls) {
-  const item  = $('fi-'  + sid(name));
-  const badge = $('fib-' + sid(name));
-  if (item)  item.className  = 'file-item ' + cls;
-  if (badge) { badge.textContent = label; badge.className = 'fi-badge ' + cls; }
-}
-
-function log(msg, type='') {
-  const s = document.createElement('span');
-  if (type) s.className = 'log-' + type;
-  s.textContent = msg + '\n';
-  logArea.appendChild(s);
-  logArea.scrollTop = logArea.scrollHeight;
-}
-
-// ── PARSE
-parseBtn.addEventListener('click', async () => {
-  const apiKey   = apiKeyEl.value.trim();
-  const workerUrl = workerUrlEl.value.trim().replace(/\/$/, '');
-
-  if (!apiKey) {
-    log('Brak klucza API!', 'err');
-    apiKeyEl.focus();
-    return;
-  }
-  if (!workerUrl) {
-    log('Brak Worker URL! Skonfiguruj Cloudflare Worker.', 'err');
-    workerUrlEl.focus();
-    return;
-  }
-  if (!files.length) return;
-
-  parseBtn.disabled = true;
-  parseBtn.classList.add('loading');
-  parseBtn.querySelector('.btn-label').textContent = 'Parsowanie...';
-  downloadBtn.disabled = true;
-  logArea.innerHTML = '';
-  emptyState.style.display = 'flex';
-  resultState.style.display = 'none';
-  csvContent = '';
-
-  const allItems = [];
-
-  for (const file of files) {
-    setFileStatus(file.name, 'parsowanie...', 'parsing');
-    log('→ ' + file.name, 'info');
-    try {
-      const b64   = await toBase64(file);
-      const items = await callClaude(apiKey, workerUrl, b64);
-      setFileStatus(file.name, 'OK · ' + items.length, 'done');
-      log('  ✓ ' + items.length + ' pozycji', 'ok');
+  const allItems=[];
+  for(const file of dFiles){
+    setFiStatus('dfi-','dfib-',file.name,'parsowanie...','parsing');
+    dLog('→ '+file.name,'info');
+    try{
+      const b64=await toBase64(file);
+      const items=await callClaude(apiKey,workerUrl,b64,'dostawa');
+      setFiStatus('dfi-','dfib-',file.name,'OK · '+items.length,'done');
+      dLog('  ✓ '+items.length+' pozycji','ok');
       allItems.push(...items);
-    } catch (e) {
-      setFileStatus(file.name, 'błąd', 'error');
-      log('  ✗ ' + e.message, 'err');
+    }catch(e){
+      setFiStatus('dfi-','dfib-',file.name,'błąd','error');
+      dLog('  ✗ '+e.message,'err');
     }
   }
 
-  // Aggregate: same EAN + same price -> merge; same EAN + different price -> separate rows
-  const agg = {};
-  let totalQty = 0, noEan = 0;
-  const noEanNames = [];
+  const agg={};let totalQty=0,noEan=0;const noEanNames=[];
+  allItems.forEach(item=>{
+    const ean=(item.ean||'').replace(/\D/g,'');
+    if(!ean||ean.length<8||ean.length>14){noEan++;noEanNames.push(item.nazwa||item.symbol||'?');return;}
+    const qty=Number(item.ilosc)||0;
+    const price=parseFloat(String(item.cena_brutto||'0').replace(',','.'))||0;
+    totalQty+=qty;
+    const key=ean+'|'+price.toFixed(2)+'|'+(item.lp||'');
+    if(!agg[key]) agg[key]={ean,qty:0,price};
+    agg[key].qty+=qty;
+  });
 
-  for (const item of allItems) {
-    const ean = (item.ean || '').replace(/\D/g, '');
-    if (!ean || ean.length < 8 || ean.length > 14) {
-      noEan++;
-      noEanNames.push(item.nazwa || item.symbol || '?');
-      continue;
-    }
-    const qty   = Number(item.ilosc) || 0;
-    const price = parseFloat(String(item.cena_brutto || '0').replace(',', '.')) || 0;
-    totalQty += qty;
-    const lp = item.lp || '';
-    const key = ean + '|' + price.toFixed(2) + '|' + lp;
-    if (!agg[key]) agg[key] = { ean, qty: 0, price };
-    agg[key].qty += qty;
+  const rows=Object.values(agg).map(v=>[v.ean,v.qty,v.price.toFixed(2),'','','','']);
+  dCsvContent='\uFEFF'+rows.map(r=>r.join(';')).join('\n');
+
+  $('d-statLines').textContent=rows.length;
+  $('d-statQty').textContent=totalQty;
+  $('d-statSkipped').textContent=noEan;
+  $('d-resultCount').textContent=rows.length+' EAN';
+
+  const wb=$('d-warnBox');
+  if(noEan>0){wb.style.display='block';wb.textContent='Pominięto '+noEan+' pozycji bez EAN: '+noEanNames.slice(0,6).join(', ')+(noEanNames.length>6?'...':'');}
+  else wb.style.display='none';
+
+  const tbody=$('d-csvBody'); tbody.innerHTML='';
+  rows.slice(0,50).forEach(r=>{const tr=document.createElement('tr');tr.innerHTML=r.map(v=>`<td>${esc(String(v))}</td>`).join('');tbody.appendChild(tr);});
+  const mEl=$('d-moreRows');
+  if(rows.length>50){mEl.style.display='block';mEl.textContent='+ '+(rows.length-50)+' kolejnych wierszy';}
+  else mEl.style.display='none';
+
+  $('d-emptyState').style.display='none'; $('d-resultState').style.display='flex';
+  $('d-downloadBtn').disabled=rows.length===0;
+  $('d-parseBtn').classList.remove('loading');
+  $('d-parseBtn').querySelector('.btn-label').textContent='Parsuj faktury →';
+  $('d-parseBtn').disabled=false;
+  dLog('Gotowe. '+rows.length+' EAN → CSV.','ok');
+});
+
+$('d-downloadBtn').addEventListener('click',()=>{
+  if(!dCsvContent) return;
+  const now=new Date(),pad=n=>String(n).padStart(2,'0');
+  const name=`DOSTAWA_BL_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
+  const blob=new Blob([dCsvContent],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  dLog('Pobrano: '+name,'ok');
+});
+
+function dLog(msg,type=''){addLog('d-log',msg,type);}
+
+// ══════════════════════════════════════════════
+// ORDER MODULE
+// ══════════════════════════════════════════════
+let oFile=null;
+let oParsedItems=[];
+
+setupDropZone('o-dropZone','o-fileInput', false, files=>{
+  if(!files.length) return;
+  oFile=files[0];
+  $('o-fileList').innerHTML='';
+  const item=document.createElement('div'); item.className='file-item'; item.id='ofi-main';
+  item.innerHTML=`<svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+  <span class="fi-name">${esc(oFile.name)}</span>
+  <span class="fi-badge pending" id="ofib-main">czeka</span>
+  <button class="fi-remove" title="Usuń">✕</button>`;
+  item.querySelector('.fi-remove').addEventListener('click',e=>{e.stopPropagation();oFile=null;$('o-fileList').innerHTML='';$('o-parseBtn').disabled=true;$('o-fileCount').textContent='—';});
+  $('o-fileList').appendChild(item);
+  $('o-parseBtn').disabled=false;
+  $('o-fileCount').textContent='1 plik';
+});
+
+// Load BL order sources
+$('o-loadSources').addEventListener('click', async ()=>{
+  const token=$('blToken').value.trim();
+  if(!token){oLog('Brak BaseLinker token!','err');return;}
+  const workerUrl=$('workerUrl').value.trim().replace(/\/$/,'');
+  if(!workerUrl){oLog('Brak Worker URL!','err');return;}
+  try{
+    const data=await blApi(token,workerUrl,'getOrderSources',{});
+    const sel=$('o-source'); sel.innerHTML='';
+    let count=0;
+    Object.entries(data.sources||{}).forEach(([id,src])=>{
+      const opt=document.createElement('option'); opt.value=id; opt.textContent=src.name+' ('+id+')'; sel.appendChild(opt); count++;
+    });
+    if(count===0) sel.innerHTML='<option value="">Brak źródeł</option>';
+    oLog('Wczytano '+count+' źródeł zamówień','ok');
+  }catch(e){oLog('Błąd: '+e.message,'err');}
+});
+
+$('o-parseBtn').addEventListener('click', async ()=>{
+  const apiKey=$('apiKey').value.trim(), workerUrl=$('workerUrl').value.trim().replace(/\/$/,'');
+  if(!apiKey){oLog('Brak klucza API!','err');return;}
+  if(!workerUrl){oLog('Brak Worker URL!','err');return;}
+  if(!oFile){oLog('Brak pliku PDF!','err');return;}
+
+  $('o-parseBtn').disabled=true; $('o-parseBtn').classList.add('loading');
+  $('o-parseBtn').querySelector('.btn-label').textContent='Parsowanie...';
+  $('o-createBtn').disabled=true;
+  $('o-log').innerHTML='';
+  $('o-emptyState').style.display='flex'; $('o-resultState').style.display='none';
+  $('o-successBox').style.display='none';
+
+  setFiStatus2('ofi-main','ofib-main','parsowanie...','parsing');
+  oLog('→ '+oFile.name,'info');
+
+  try{
+    const b64=await toBase64(oFile);
+    const items=await callClaude(apiKey,workerUrl,b64,'order');
+    setFiStatus2('ofi-main','ofib-main','OK · '+items.length,'done');
+    oLog('  ✓ '+items.length+' pozycji','ok');
+    oParsedItems=items;
+    renderOrderResult(items);
+  }catch(e){
+    setFiStatus2('ofi-main','ofib-main','błąd','error');
+    oLog('  ✗ '+e.message,'err');
   }
 
-  const rows = Object.values(agg).map(v =>
-    [v.ean, v.qty, v.price.toFixed(2), '', '', '', '']
-  );
+  $('o-parseBtn').classList.remove('loading');
+  $('o-parseBtn').querySelector('.btn-label').textContent='Parsuj zamówienie →';
+  $('o-parseBtn').disabled=false;
+});
 
-  csvContent = '\uFEFF' + rows.map(r => r.join(';')).join('\n');
+function renderOrderResult(items){
+  const valid=items.filter(i=>{const e=(i.ean||'').replace(/\D/g,'');return e.length>=8&&e.length<=14;});
+  const noEan=items.length-valid.length;
+  let totalQty=0; valid.forEach(i=>totalQty+=Number(i.ilosc)||0);
 
-  $('statLines').textContent   = rows.length;
-  $('statQty').textContent     = totalQty;
-  $('statSkipped').textContent = noEan;
-  $('resultCount').textContent = rows.length + ' EAN';
+  $('o-statLines').textContent=valid.length;
+  $('o-statQty').textContent=totalQty;
+  $('o-statSkipped').textContent=noEan;
+  $('o-resultCount').textContent=valid.length+' pozycji';
 
-  const warnBox = $('warnBox');
-  if (noEan > 0) {
-    warnBox.style.display = 'block';
-    warnBox.textContent   = 'Pominięto ' + noEan + ' pozycji bez EAN: ' + noEanNames.slice(0, 6).join(', ') + (noEanNames.length > 6 ? '...' : '');
-  } else {
-    warnBox.style.display = 'none';
-  }
+  const wb=$('o-warnBox');
+  if(noEan>0){wb.style.display='block';wb.textContent='Pominięto '+noEan+' pozycji bez EAN';}
+  else wb.style.display='none';
 
-  const tbody = $('csvTableBody');
-  tbody.innerHTML = '';
-  rows.slice(0, 50).forEach(r => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = r.map(v => `<td>${esc(String(v))}</td>`).join('');
+  const tbody=$('o-csvBody'); tbody.innerHTML='';
+  valid.slice(0,50).forEach(i=>{
+    const ean=(i.ean||'').replace(/\D/g,'');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${esc(ean)}</td><td>${esc(String(i.ilosc||0))}</td><td style="color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(i.nazwa||'')}</td>`;
     tbody.appendChild(tr);
   });
-  const moreEl = $('moreRows');
-  if (rows.length > 50) { moreEl.style.display = 'block'; moreEl.textContent = '+ ' + (rows.length - 50) + ' kolejnych wierszy'; }
-  else moreEl.style.display = 'none';
+  if(valid.length>50){$('o-moreRows').style.display='block';$('o-moreRows').textContent='+ '+(valid.length-50)+' kolejnych';}
+  else $('o-moreRows').style.display='none';
 
-  emptyState.style.display  = 'none';
-  resultState.style.display = 'flex';
-  downloadBtn.disabled       = rows.length === 0;
+  $('o-emptyState').style.display='none';
+  $('o-resultState').style.display='flex';
+  $('o-createBtn').disabled=valid.length===0;
+}
 
-  parseBtn.classList.remove('loading');
-  parseBtn.querySelector('.btn-label').textContent = 'Parsuj faktury →';
-  parseBtn.disabled = false;
+$('o-createBtn').addEventListener('click', async ()=>{
+  const token=$('blToken').value.trim();
+  const workerUrl=$('workerUrl').value.trim().replace(/\/$/,'');
+  const sourceId=$('o-source').value;
 
-  log('Gotowe. ' + rows.length + ' unikalnych EAN → CSV.', 'ok');
+  if(!token){oLog('Brak BaseLinker token!','err');return;}
+  if(!workerUrl){oLog('Brak Worker URL!','err');return;}
+  if(!sourceId){oLog('Wybierz źródło zamówienia!','err');return;}
+  if(!oParsedItems.length){oLog('Brak pozycji!','err');return;}
+
+  $('o-createBtn').disabled=true; $('o-createBtn').classList.add('loading');
+  $('o-createBtn').querySelector('.btn-label').textContent='Tworzenie zamówienia...';
+  $('o-successBox').style.display='none';
+
+  const products=oParsedItems
+    .map(i=>({ean:(i.ean||'').replace(/\D/g,''),qty:Number(i.ilosc)||0,name:i.nazwa||''}))
+    .filter(i=>i.ean.length>=8&&i.ean.length<=14&&i.qty>0)
+    .map(i=>({storage:'db',storage_id:0,product_id:0,variant_id:0,name:i.name,sku:'',ean:i.ean,location:'',warehouse_id:0,attributes:'',price_brutto:0,tax_rate:0,quantity:i.qty,weight:0}));
+
+  const params={
+    order_source_id: parseInt(sourceId),
+    date_add: Math.floor(Date.now()/1000),
+    currency: 'PLN',
+    payment_method: 'przelew',
+    payment_method_cod: 0,
+    paid: 0,
+    user_login: $('o-email').value.trim()||'',
+    phone: $('o-phone').value.trim()||'',
+    email: $('o-email').value.trim()||'',
+    user_comments: '',
+    admin_comments: 'Zamówienie z PDF',
+    invoice_nip: $('o-nip').value.trim()||'',
+    invoice_company: '',
+    invoice_fullname: $('o-name').value.trim()||'',
+    invoice_address: $('o-street').value.trim()||'',
+    invoice_city: $('o-city').value.trim()||'',
+    invoice_postcode: $('o-postcode').value.trim()||'',
+    invoice_country_code: 'PL',
+    want_invoice: $('o-nip').value.trim() ? 1 : 0,
+    delivery_fullname: $('o-name').value.trim()||'',
+    delivery_company: '',
+    delivery_address: $('o-street').value.trim()||'',
+    delivery_city: $('o-city').value.trim()||'',
+    delivery_postcode: $('o-postcode').value.trim()||'',
+    delivery_country_code: 'PL',
+    delivery_price: 0,
+    delivery_package_module: '',
+    delivery_package_nr: '',
+    products: products,
+  };
+
+  try{
+    const data=await blApi(token,workerUrl,'addOrder',params);
+    if(data.status==='SUCCESS'||data.order_id){
+      const orderId=data.order_id||'?';
+      $('o-successBox').style.display='block';
+      $('o-successBox').innerHTML=`✓ Zamówienie utworzone!<br>ID: <strong>${orderId}</strong><br><a href="https://app.baselinker.com/index.php?module=Orders&action=showOrder&id=${orderId}" target="_blank" style="color:var(--green-txt)">Otwórz w BaseLinker →</a>`;
+      oLog('✓ Zamówienie #'+orderId+' utworzone!','ok');
+    } else {
+      throw new Error(data.error_message||JSON.stringify(data));
+    }
+  }catch(e){
+    oLog('✗ Błąd: '+e.message,'err');
+    $('o-warnBox').style.display='block';
+    $('o-warnBox').textContent='Błąd tworzenia zamówienia: '+e.message;
+  }
+
+  $('o-createBtn').classList.remove('loading');
+  $('o-createBtn').querySelector('.btn-label').textContent='Utwórz zamówienie w BaseLinker →';
+  $('o-createBtn').disabled=false;
 });
 
-// ── DOWNLOAD
-downloadBtn.addEventListener('click', () => {
-  if (!csvContent) return;
-  const now  = new Date();
-  const pad  = n => String(n).padStart(2, '0');
-  const name = `DOSTAWA_BL_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-  log('Pobrano: ' + name, 'ok');
-});
+function oLog(msg,type=''){addLog('o-log',msg,type);}
 
-// ── Claude via Worker
-async function callClaude(apiKey, workerUrl, base64Pdf) {
-  const endpoint = workerUrl + '/v1/messages';
+// ══════════════════════════════════════════════
+// SHARED: CLAUDE API
+// ══════════════════════════════════════════════
+async function callClaude(apiKey, workerUrl, base64Pdf, mode) {
+  const endpoint = workerUrl+'/v1/messages';
 
-  const prompt = `Z tej faktury PDF wyodrębnij WSZYSTKIE pozycje TOWAROWE wiersz po wierszu.
-POMIŃ wiersze gdzie nazwa zawiera: "Dostawa", "dostawa", "Delivery", "Shipping", "DS", "Ds".
+  const promptDostawa=`Z tej faktury PDF wyodrębnij WSZYSTKIE pozycje TOWAROWE wiersz po wierszu.
+POMIŃ wiersze gdzie nazwa zawiera: "Dostawa","dostawa","Delivery","Shipping","DS","Ds".
 
-Faktura ma ponumerowane wiersze (Lp 1, 2, 3...). Zwróć KAŻDY wiersz jako osobny obiekt.
+Faktura ma ponumerowane wiersze (Lp 1,2,3...). Zwróć KAŻDY wiersz jako osobny obiekt.
 
 Zwróć TYLKO tablicę JSON (bez markdown, bez żadnego tekstu przed ani po):
 [{"lp":numer_wiersza,"ean":"tylko cyfry 8-14 znaków z pola Kod kreskowy","symbol":"kod produktu","nazwa":"nazwa towaru","ilosc":liczba,"cena_brutto":liczba}]
 
 Zasady:
-- "lp" = numer wiersza Lp z faktury (1, 2, 3...)
-- "ean" = tylko cyfry 8-14 znaków z kolumny Kod kreskowy; jeśli brak EAN zostaw ""
+- "lp" = numer wiersza Lp z faktury
+- "ean" = tylko cyfry 8-14 znaków; jeśli brak EAN zostaw ""
 - "ilosc" = dokładna liczba z kolumny Ilość w TYM wierszu
-- "cena_brutto" = cena BRUTTO jednostkowa za 1 szt (kolumna "Cena brutto" lub "Wartość brutto / ilość"). NIGDY nie używaj ceny netto ani wartości netto
-- Liczba obiektów w tablicy MUSI być równa liczbie wierszy towarowych w fakturze
-- NIE sumuj, NIE łącz, NIE grupuj — jeden wiersz faktury = jeden obiekt JSON`;
+- "cena_brutto" = cena BRUTTO jednostkowa za 1 szt. NIGDY nie używaj ceny netto
+- Liczba obiektów MUSI być równa liczbie wierszy towarowych
+- NIE sumuj, NIE łącz — jeden wiersz faktury = jeden obiekt JSON`;
 
-  const resp = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64Pdf } },
-          { type: 'text', text: prompt }
-        ]
-      }]
+  const promptOrder=`Z tego dokumentu PDF (zamówienie od klienta) wyodrębnij WSZYSTKIE pozycje towarowe.
+
+Zwróć TYLKO tablicę JSON (bez markdown, bez żadnego tekstu):
+[{"lp":numer_wiersza,"ean":"cyfry 8-14 znaków z pola Kod kreskowy","symbol":"kod/symbol produktu","nazwa":"pełna nazwa towaru","ilosc":liczba}]
+
+Zasady:
+- "ean" = cyfry z kolumny "Kod kreskowy" lub "EAN" (8-14 znaków); jeśli brak zostaw ""
+- "symbol" = kod z kolumny "Symbol" lub "Artykuł"
+- "ilosc" = liczba sztuk z TEGO wiersza
+- Jeden wiersz dokumentu = jeden obiekt JSON
+- NIE pomijaj żadnych pozycji towarowych`;
+
+  const resp=await fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:4096,
+      messages:[{role:'user',content:[
+        {type:'document',source:{type:'base64',media_type:'application/pdf',data:base64Pdf}},
+        {type:'text',text:mode==='order'?promptOrder:promptDostawa}
+      ]}]
     })
   });
 
-  if (!resp.ok) {
-    let msg = 'HTTP ' + resp.status;
-    try {
-      const j = await resp.json();
-      msg += ': ' + (j?.error?.message || JSON.stringify(j)).substring(0, 150);
-    } catch { msg += ': ' + (await resp.text().catch(() => '')).substring(0, 150); }
+  if(!resp.ok){
+    let msg='HTTP '+resp.status;
+    try{const j=await resp.json();msg+=': '+(j?.error?.message||'').substring(0,150);}catch{}
     throw new Error(msg);
   }
-
-  const data = await resp.json();
-  const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
-  const clean = text.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-
+  const data=await resp.json();
+  const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+  const clean=text.replace(/```json\s*/gi,'').replace(/```\s*/gi,'').trim();
   let items;
-  try { items = JSON.parse(clean); }
-  catch { throw new Error('Nieoczekiwana odpowiedź: ' + clean.substring(0, 100)); }
-  if (!Array.isArray(items)) throw new Error('Claude zwrócił nieoczekiwany format');
+  try{items=JSON.parse(clean);}catch{throw new Error('Nieoczekiwana odpowiedź: '+clean.substring(0,100));}
+  if(!Array.isArray(items)) throw new Error('Claude zwrócił nieoczekiwany format');
   return items;
 }
 
-// ── Utils
-function toBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload  = () => res(r.result.split(',')[1]);
-    r.onerror = () => rej(new Error('Błąd odczytu: ' + file.name));
-    r.readAsDataURL(file);
+// ── BaseLinker API via Worker
+async function blApi(token, workerUrl, method, params) {
+  const endpoint=workerUrl+'/v1/messages';
+  // Use worker as generic proxy — call BL directly from browser via worker CORS headers
+  // Actually call BL API directly (worker just adds CORS for Anthropic, BL doesn't need it)
+  const body=new URLSearchParams();
+  body.append('token',token);
+  body.append('method',method);
+  body.append('parameters',JSON.stringify(params));
+
+  const resp=await fetch('https://api.baselinker.com/connector.php',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:body.toString()
+  });
+
+  if(!resp.ok) throw new Error('BL HTTP '+resp.status);
+  const data=await resp.json();
+  if(data.status==='ERROR') throw new Error(data.error_message||'BaseLinker error '+data.error_code);
+  return data;
+}
+
+// ── UTILS
+function setupDropZone(zoneId, inputId, multiple, cb){
+  const zone=$(zoneId), input=$(inputId);
+  zone.addEventListener('click',()=>input.click());
+  input.addEventListener('change',e=>cb([...e.target.files]));
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
+  zone.addEventListener('drop',e=>{
+    e.preventDefault();zone.classList.remove('dragover');
+    const files=[...e.dataTransfer.files].filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));
+    cb(multiple?files:files.slice(0,1));
   });
 }
 
-function sid(s)  { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
-function esc(s)  { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function setFiStatus(pfx,bpfx,name,label,cls){
+  const el=$(pfx+sid(name)),badge=$(bpfx+sid(name));
+  if(el) el.className='file-item '+cls;
+  if(badge){badge.textContent=label;badge.className='fi-badge '+cls;}
+}
+function setFiStatus2(itemId,badgeId,label,cls){
+  const el=$(itemId),badge=$(badgeId);
+  if(el) el.className='file-item '+cls;
+  if(badge){badge.textContent=label;badge.className='fi-badge '+cls;}
+}
+
+function addLog(logId,msg,type=''){
+  const s=document.createElement('span');
+  if(type) s.className='log-'+type;
+  s.textContent=msg+'\n';
+  $(logId).appendChild(s);
+  $(logId).scrollTop=$(logId).scrollHeight;
+}
+
+function toBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=()=>rej(new Error('Błąd odczytu: '+file.name));
+    r.readAsDataURL(file);
+  });
+}
+function sid(s){return s.replace(/[^a-zA-Z0-9]/g,'_');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 </script>
 </body>
 </html>
