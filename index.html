@@ -1179,7 +1179,10 @@ function setupDropZone(zoneId, inputId, multiple, cb){
   zone.addEventListener('dragleave',()=>zone.classList.remove('dragover'));
   zone.addEventListener('drop',e=>{
     e.preventDefault();zone.classList.remove('dragover');
-    const files=[...e.dataTransfer.files].filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));
+    const isPdf = zoneId==='d-dropZone'||zoneId==='o-dropZone';
+    let files=[...e.dataTransfer.files];
+    if(isPdf) files=files.filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));
+    else files=files.filter(f=>f.name.toLowerCase().endsWith('.xlsx')||f.name.toLowerCase().endsWith('.xls'));
     cb(multiple?files:files.slice(0,1));
   });
 }
