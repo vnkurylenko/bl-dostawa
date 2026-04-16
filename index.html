@@ -973,12 +973,12 @@ Zwróć TYLKO tablicę JSON (bez markdown):
 
 function sBuildAndRender(){
   const agg={};
-  let totalQty=0, noEan=0;
-  const noEanNames=[];
+  let totalQty=0;
+  const missing=[]; // items without EAN
 
   sAllItems.forEach(item=>{
     if(!item.ean || item.ean.length<8){
-      noEan++; noEanNames.push(item.name||item.kodTowaru); return;
+      missing.push(item); return;
     }
     const key=item.ean+'|'+item.priceBrutto.toFixed(2);
     if(!agg[key]) agg[key]={ean:item.ean, qty:0, price:item.priceBrutto};
@@ -986,19 +986,26 @@ function sBuildAndRender(){
     totalQty+=item.qty;
   });
 
+  // STOP if any missing EAN — show table for manual input
+  if(missing.length > 0){
+    $('s-parseBtn').classList.remove('loading');
+    $('s-parseBtn').querySelector('.btn-label').textContent='Generuj CSV →';
+    $('s-parseBtn').disabled=false;
+    sLog('STOP: Brak EAN dla '+missing.length+' pozycji. Uzupełnij w SŁOWNIKU.','err');
+    // open slownik with missing items highlighted
+    sShowSlownikWithMissing(missing);
+    return;
+  }
+
   const csvRows=Object.values(agg).map(v=>[v.ean,v.qty,v.price.toFixed(2),'','','','']);
   sCsvContent='\uFEFF'+csvRows.map(r=>r.join(';')).join('\n');
 
   $('s-statLines').textContent=csvRows.length;
   $('s-statQty').textContent=totalQty;
-  $('s-statSkipped').textContent=noEan;
+  $('s-statSkipped').textContent=0;
   $('s-resultCount').textContent=csvRows.length+' pozycji';
 
-  const wb=$('s-warnBox');
-  if(noEan>0){
-    wb.style.display='block';
-    wb.textContent='Brak EAN dla '+noEan+' pozycji (dodano do SLOWNIK): '+noEanNames.slice(0,5).join(', ')+(noEanNames.length>5?'...':'');
-  } else wb.style.display='none';
+  $('s-warnBox').style.display='none';
 
   const tbody=$('s-csvBody'); tbody.innerHTML='';
   csvRows.slice(0,50).forEach(r=>{
@@ -1011,11 +1018,30 @@ function sBuildAndRender(){
   else mEl.style.display='none';
 
   $('s-emptyState').style.display='none'; $('s-resultState').style.display='flex';
-  $('s-downloadBtn').disabled=csvRows.length===0;
+  $('s-downloadBtn').disabled=false;
   $('s-parseBtn').classList.remove('loading');
   $('s-parseBtn').querySelector('.btn-label').textContent='Generuj CSV →';
   $('s-parseBtn').disabled=false;
   sLog('Gotowe. '+csvRows.length+' EAN → CSV.','ok');
+}
+
+function sShowSlownikWithMissing(missing){
+  // Save missing to slownik as empty EAN
+  sSlownik = slownikLoad();
+  missing.forEach(item=>{
+    if(!sSlownik[item.kodTowaru]){
+      sSlownik[item.kodTowaru]={ean:'', name:item.name, confirmed:false};
+    }
+  });
+  slownikSave(sSlownik);
+  // Open slownik modal
+  sShowSlownik();
+  // Add banner inside modal
+  const banner = document.createElement('div');
+  banner.style.cssText='background:var(--red-bg);border:1px solid var(--red);border-radius:6px;padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--red-txt);margin-bottom:10px';
+  banner.innerHTML='❌ Brak EAN dla <strong>'+missing.length+'</strong> pozycji. Wpisz EAN ręcznie i zamknij okno, a następnie naciśnij <strong>Generuj CSV →</strong> ponownie.';
+  const modal = document.getElementById('slownik-modal').querySelector('div');
+  modal.insertBefore(banner, modal.children[2]);
 }
 
 function sReset(){
