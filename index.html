@@ -1030,11 +1030,11 @@ function sBuildAndRender(){
 }
 
 function sShowSlownikWithMissing(missing){
-  // Save missing to slownik as empty EAN
+  // Save missing to slownik as empty EAN — always update name from xlsx
   sSlownik = slownikLoad();
   missing.forEach(item=>{
-    if(!sSlownik[item.kodTowaru]){
-      sSlownik[item.kodTowaru]={ean:'', name:item.name, confirmed:false};
+    if(!sSlownik[item.kodTowaru] || !sSlownik[item.kodTowaru].ean){
+      sSlownik[item.kodTowaru]={ean: sSlownik[item.kodTowaru]?.ean||'', name:item.name||item.kodTowaru, confirmed:false};
     }
   });
   slownikSave(sSlownik);
@@ -1166,7 +1166,7 @@ function sShowSlownik(){
       const tr=document.createElement('tr');
       tr.innerHTML=`
         <td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text2)">${esc(kod)}</td>
-        <td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(val.name||'')}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text2);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(val.name||'')}">${esc(val.name||kod)}</td>
         <td style="padding:5px 10px;border-bottom:1px solid var(--border)">
           <input type="text" value="${esc(val.ean||'')}" data-kod="${esc(kod)}"
             style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--green-txt);font-family:var(--mono);font-size:11px;padding:3px 7px;width:140px"
