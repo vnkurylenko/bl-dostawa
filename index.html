@@ -378,7 +378,7 @@
           <div><span class="panel-num">01</span><span class="panel-title">SYMFONIA XLSX</span></div>
           <div style="display:flex;align-items:center;gap:8px">
             <span class="panel-count" id="s-fileCount">—</span>
-            <button onclick="sShowSlownik()" style="font-family:var(--mono);font-size:10px;padding:3px 8px;background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text3);cursor:pointer">SŁOWNIK</button>
+            <button onclick="sShowSlownik()" style="font-family:var(--mono);font-size:10px;padding:3px 8px;background:var(--amber-bg);border:1px solid var(--amber);border-radius:4px;color:var(--amber-txt);cursor:pointer;font-weight:500">SŁOWNIK</button>
           </div>
         </div>
         <div class="panel-body">
@@ -948,11 +948,15 @@ ${symList}
 KATALOG BASELINKER (EAN | SKU | nazwa):
 ${blList}
 
-Dla każdego produktu z Symfonii znajdź najlepiej pasujący produkt z katalogu BL na podstawie podobieństwa nazwy.
-Nazwy mogą się różnić (np. "3D Gel 5 ml" → "3D Gum Gel Clear 5 g") — dopasuj semantycznie.
+Zasady dopasowania:
+- Dopasuj na podstawie PEŁNEJ nazwy produktu
+- KRYTYCZNE: numer koloru/wariantu w nazwie MUSI się zgadzać dokładnie (np. "Gel 25" ≠ "Gel 01", "Gel 04" ≠ "Gel 25")
+- Rozmiar/gramatura też musi pasować (np. "30 g" ≠ "15 g")
+- Jeśli nie ma DOKŁADNEGO dopasowania — zwróć "" dla EAN, nie zgaduj
+- Małe różnice w pisowni są OK (np. "ml" vs "g", skróty nazw)
 
 Zwróć TYLKO tablicę JSON (bez markdown):
-[{"kodTowaru":"kod z Symfonii","ean":"EAN z katalogu BL lub empty string jeśli brak dopasowania","suggestedName":"nazwa z BL"}]`;
+[{"kodTowaru":"kod z Symfonii","ean":"EAN z katalogu BL lub empty string jeśli brak pewnego dopasowania","suggestedName":"nazwa z BL lub empty string"}]`;
 
   const resp = await fetch(endpoint, {
     method:'POST',
