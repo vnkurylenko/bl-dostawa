@@ -857,26 +857,26 @@ $('s-parseBtn').addEventListener('click', async ()=>{
   }
 
   // Step 2: parse all items
+  // UWAGA: Kod towaru w Symfonii to wewnętrzny kod, NIE EAN dla BL
+  // Wszystkie produkty muszą być dopasowane przez katalog BL
   sAllItems=[];
   for(const r of rows){
     const kodTowaru = String(r['Kod towaru']||r['Kod']||'').trim();
-    const rawEan    = String(r['Kod towaru']||r['Kod']||'').replace(/\D/g,'');
     const qty       = Number(r['Ilość']||r['Ilosc']||0)||0;
     const priceN    = parseFloat(String(r['Cena jednostkowa']||r['Cena']||'0').replace(',','.'))||0;
     const priceBrutto = parseFloat((priceN * 1.23).toFixed(2));
     const name      = String(r['Opis towaru']||r['Opis']||'').trim();
     if(!kodTowaru || qty<=0) continue;
-    // valid EAN = 8-14 digits
-    const ean = (rawEan.length>=8 && rawEan.length<=14) ? rawEan : '';
-    sAllItems.push({kodTowaru, ean, qty, priceBrutto, name});
+    // EAN zawsze puste — szukamy przez katalog BL
+    sAllItems.push({kodTowaru, ean:'', qty, priceBrutto, name});
   }
   sLog('Pozycji: '+sAllItems.length,'info');
 
-  // Step 3: find items missing EAN — check SLOWNIK first
-  const missingEan = sAllItems.filter(i=>!i.ean);
-  const needClaude = missingEan.filter(i=>!sSlownik[i.kodTowaru]);
+  // Step 3: check SLOWNIK first, rest goes to Claude
+  const needClaude = sAllItems.filter(i=>!sSlownik[i.kodTowaru]);
+  const fromSlownik = sAllItems.length - needClaude.length;
 
-  sLog('Brak EAN: '+missingEan.length+', w SLOWNIKU: '+(missingEan.length-needClaude.length),'info');
+  sLog('Ze SŁOWNIKA: '+fromSlownik+', do dopasowania: '+needClaude.length,'info');
 
   // Step 4: Claude matching for items not in SLOWNIK
   if(needClaude.length > 0){
