@@ -35,6 +35,7 @@
   .tab:hover{color:var(--text2)}
   .tab.active{color:var(--text);border-bottom-color:var(--text)}
   .tab.active-order{color:var(--purple-txt);border-bottom-color:var(--purple)}
+  .tab.active-sym{color:var(--amber-txt);border-bottom-color:var(--amber)}
 
   .main{flex:1;padding:1.5rem 2rem;display:flex;flex-direction:column;gap:1rem;max-width:1200px;margin:0 auto;width:100%}
 
@@ -159,17 +160,19 @@
   .page{display:none}
   .page.active{display:flex;flex-direction:column;gap:1rem;flex:1}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
 <header class="topbar">
   <div class="logo">DIVNA<div class="logo-divider"></div><span class="logo-sub">BASELINKER TOOLS</span></div>
-  <div class="badge">v2.0</div>
+  <div class="badge">v3.0</div>
 </header>
 
 <div class="mode-tabs">
   <button class="tab active" id="tabDostawa" onclick="switchMode('dostawa')">DOSTAWA PDF → CSV</button>
   <button class="tab" id="tabOrder" onclick="switchMode('order')">ZAMÓWIENIE KLIENTA → BASELINKER</button>
+  <button class="tab" id="tabSymfonia" onclick="switchMode('symfonia')">SYMFONIA XLSX → BL CSV</button>
 </div>
 
 <main class="main">
@@ -287,14 +290,6 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <div class="form-label">STATUS ZAMÓWIENIA</div>
-                <select class="source-select" id="o-status">
-                  <option value="">— wczytaj źródła →</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
                 <div class="form-label">IMIĘ I NAZWISKO</div>
                 <input type="text" class="cfg-input" id="o-name" placeholder="Jan Kowalski">
               </div>
@@ -375,6 +370,101 @@
     </div>
   </div>
 
+  <!-- PAGE: SYMFONIA -->
+  <div class="page" id="pageSymfonia">
+    <div class="panels">
+      <div class="panel">
+        <div class="panel-header">
+          <div><span class="panel-num">01</span><span class="panel-title">SYMFONIA XLSX</span></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="panel-count" id="s-fileCount">—</span>
+            <button onclick="sShowSlownik()" style="font-family:var(--mono);font-size:10px;padding:3px 8px;background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text3);cursor:pointer">SŁOWNIK</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="drop-zone" id="s-dropZone">
+            <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+              <path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <div class="drop-text">Przeciągnij plik WZ z Symfonii<br>lub kliknij aby wybrać</div>
+            <div class="drop-sub">.XLSX · jeden plik</div>
+            <input type="file" id="s-fileInput" accept=".xlsx,.xls">
+          </div>
+          <div class="file-list" id="s-fileList"></div>
+          <button class="parse-btn" id="s-parseBtn" disabled>
+            <div class="spinner"></div><span class="btn-label">Generuj CSV →</span>
+          </button>
+          <div class="log" id="s-log"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div><span class="panel-num">02</span><span class="panel-title">EKSPORT CSV</span></div>
+          <span class="panel-count" id="s-resultCount">—</span>
+        </div>
+        <div class="panel-body">
+          <div class="empty-state" id="s-emptyState">
+            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M9 17H7A5 5 0 017 7h10a5 5 0 110 10h-2M9 12h6m-3-3v6"/>
+            </svg>
+            <span>CSV pojawi się tu po przetworzeniu pliku XLSX</span>
+          </div>
+          <div id="s-resultState" style="display:none;flex-direction:column;gap:10px;flex:1">
+            <div class="stats-row">
+              <div class="stat"><div class="stat-val" id="s-statLines">0</div><div class="stat-lbl">POZYCJI</div></div>
+              <div class="stat"><div class="stat-val" id="s-statQty">0</div><div class="stat-lbl">SZT ŁĄCZNIE</div></div>
+              <div class="stat"><div class="stat-val" id="s-statSkipped">0</div><div class="stat-lbl">BEZ SKU</div></div>
+            </div>
+            <div class="warn-box" id="s-warnBox"></div>
+            <div class="csv-table-wrap">
+              <table class="csv-table">
+                <thead><tr><th>SKU/EAN</th><th>ILOŚĆ</th><th>CENA BRUTTO</th><th colspan="4" style="color:var(--border2)">···</th></tr></thead>
+                <tbody id="s-csvBody"></tbody>
+              </table>
+              <div class="more-rows" id="s-moreRows" style="display:none"></div>
+            </div>
+          </div>
+          <button class="download-btn" id="s-downloadBtn" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Pobierz CSV dla BaseLinker
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLOWNIK MODAL -->
+  <div id="slownik-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;overflow-y:auto">
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;max-width:800px;margin:2rem auto;padding:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <span style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text)">SŁOWNIK — Kod towaru → EAN</span>
+        <button onclick="sCloseSlownik()" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:10px">
+        Mapowanie kodów z Symfonii na EAN dla BaseLinker. Claude automatycznie uzupełnia nowe kody.
+      </div>
+      <div style="overflow-y:auto;max-height:400px;border:1px solid var(--border);border-radius:6px">
+        <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px" id="slownik-table">
+          <thead style="position:sticky;top:0;background:var(--bg3)">
+            <tr>
+              <th style="padding:7px 10px;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);font-weight:500">KOD TOWARU</th>
+              <th style="padding:7px 10px;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);font-weight:500">NAZWA</th>
+              <th style="padding:7px 10px;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);font-weight:500">EAN</th>
+              <th style="padding:7px 10px;color:var(--text3);text-align:left;border-bottom:1px solid var(--border);font-weight:500"></th>
+            </tr>
+          </thead>
+          <tbody id="slownik-tbody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="sClearSlownik()" style="font-family:var(--mono);font-size:11px;padding:7px 14px;background:none;border:1px solid var(--red);border-radius:5px;color:var(--red-txt);cursor:pointer">Wyczyść wszystko</button>
+        <button onclick="sCloseSlownik()" style="font-family:var(--mono);font-size:11px;padding:7px 14px;background:var(--text);color:var(--bg);border:none;border-radius:5px;cursor:pointer;margin-left:auto">Zamknij</button>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <footer>
@@ -399,12 +489,16 @@ function switchMode(mode) {
   currentMode = mode;
   $('pageDostawa').classList.toggle('active', mode==='dostawa');
   $('pageOrder').classList.toggle('active', mode==='order');
+  $('pageSymfonia').classList.toggle('active', mode==='symfonia');
   $('tabDostawa').classList.toggle('active', mode==='dostawa');
   $('tabDostawa').classList.toggle('active-order', false);
+  $('tabDostawa').classList.toggle('active-sym', false);
   $('tabOrder').classList.toggle('active', mode==='order');
   $('tabOrder').classList.toggle('active-order', mode==='order');
-  $('blTokenRow').style.display = mode==='order' ? 'flex' : 'none';
-  $('blTokenRow-divider').style.display = mode==='order' ? 'block' : 'none';
+  $('tabSymfonia').classList.toggle('active', mode==='symfonia');
+  $('tabSymfonia').classList.toggle('active-sym', mode==='symfonia');
+  $('blTokenRow').style.display = (mode==='order'||mode==='symfonia') ? 'flex' : 'none';
+  $('blTokenRow-divider').style.display = (mode==='order'||mode==='symfonia') ? 'block' : 'none';
 }
 switchMode('dostawa');
 
@@ -545,37 +639,14 @@ $('o-loadSources').addEventListener('click', async ()=>{
   const workerUrl=$('workerUrl').value.trim().replace(/\/$/,'');
   if(!workerUrl){oLog('Brak Worker URL!','err');return;}
   try{
-    const [srcData, stData] = await Promise.all([
-      blApi(token,workerUrl,'getOrderSources',{}),
-      blApi(token,workerUrl,'getOrderStatusList',{})
-    ]);
-
+    const data=await blApi(token,workerUrl,'getOrderSources',{});
     const sel=$('o-source'); sel.innerHTML='';
-    // Add default "personal" option (no custom_source_id needed)
-    const defOpt=document.createElement('option');
-    defOpt.value='0'; defOpt.textContent='Zamówienie osobiste (domyślne)';
-    sel.appendChild(defOpt);
-    let count=1;
-    // custom sources from getOrderSources
-    const sources = srcData.sources || {};
-    Object.entries(sources).forEach(([type, arr])=>{
-      if(Array.isArray(arr)){
-        arr.forEach(src=>{
-          const opt=document.createElement('option');
-          opt.value=src.id||0;
-          opt.textContent=(src.name||type)+' ('+type+' / id:'+src.id+')';
-          sel.appendChild(opt); count++;
-        });
-      }
+    let count=0;
+    Object.entries(data.sources||{}).forEach(([id,src])=>{
+      const opt=document.createElement('option'); opt.value=id; opt.textContent=src.name+' ('+id+')'; sel.appendChild(opt); count++;
     });
-
-    const stSel=$('o-status'); stSel.innerHTML='';
-    (stData.statuses||[]).forEach(st=>{
-      const opt=document.createElement('option'); opt.value=st.id; opt.textContent=st.name+' ('+st.id+')'; stSel.appendChild(opt);
-    });
-    if(!stData.statuses||!stData.statuses.length) stSel.innerHTML='<option value="">Brak statusów</option>';
-
-    oLog('Wczytano '+count+' źródeł i '+(stData.statuses||[]).length+' statusów','ok');
+    if(count===0) sel.innerHTML='<option value="">Brak źródeł</option>';
+    oLog('Wczytano '+count+' źródeł zamówień','ok');
   }catch(e){oLog('Błąd: '+e.message,'err');}
 });
 
@@ -597,21 +668,10 @@ $('o-parseBtn').addEventListener('click', async ()=>{
 
   try{
     const b64=await toBase64(oFile);
-    const result=await callClaude(apiKey,workerUrl,b64,'order');
-    const items=result.pozycje||result;
-    const klient=result.klient||{};
+    const items=await callClaude(apiKey,workerUrl,b64,'order');
     setFiStatus2('ofi-main','ofib-main','OK · '+items.length,'done');
     oLog('  ✓ '+items.length+' pozycji','ok');
     oParsedItems=items;
-    // Auto-fill client fields
-    if(klient.nazwa||klient.imie_nazwisko) $('o-name').value=klient.nazwa||klient.imie_nazwisko||'';
-    if(klient.email)        $('o-email').value=klient.email;
-    if(klient.telefon)      $('o-phone').value=klient.telefon;
-    if(klient.nip)          $('o-nip').value=klient.nip;
-    if(klient.ulica)        $('o-street').value=klient.ulica;
-    if(klient.kod_pocztowy) $('o-postcode').value=klient.kod_pocztowy;
-    if(klient.miasto)       $('o-city').value=klient.miasto;
-    if(Object.keys(klient).some(k=>klient[k])) oLog('  ✓ Dane klienta uzupełnione automatycznie','ok');
     renderOrderResult(items);
   }catch(e){
     setFiStatus2('ofi-main','ofib-main','błąd','error');
@@ -663,95 +723,16 @@ $('o-createBtn').addEventListener('click', async ()=>{
   if(!oParsedItems.length){oLog('Brak pozycji!','err');return;}
 
   $('o-createBtn').disabled=true; $('o-createBtn').classList.add('loading');
-  $('o-createBtn').querySelector('.btn-label').textContent='Szukam produktów w katalogu...';
+  $('o-createBtn').querySelector('.btn-label').textContent='Tworzenie zamówienia...';
   $('o-successBox').style.display='none';
 
-  const INVENTORY_ID = 9405;
+  const products=oParsedItems
+    .map(i=>({ean:(i.ean||'').replace(/\D/g,''),qty:Number(i.ilosc)||0,name:i.nazwa||''}))
+    .filter(i=>i.ean.length>=8&&i.ean.length<=14&&i.qty>0)
+    .map(i=>({storage:'db',storage_id:0,product_id:0,variant_id:0,name:i.name,sku:'',ean:i.ean,location:'',warehouse_id:0,attributes:'',price_brutto:0,tax_rate:0,quantity:i.qty,weight:0}));
 
-  // Step 1: collect valid items from PDF
-  const parsedValid = oParsedItems
-    .map(i=>({ean:(i.ean||'').replace(/\D/g,''), qty:parseQty(i.ilosc), name:i.nazwa||'', symbol:i.symbol||''}))
-    .filter(i=>i.ean.length>=8&&i.ean.length<=14&&i.qty>0);
-
-  // Step 2: look up product_id and price from BL inventory by EAN
-  // getInventoryProductsList supports filter_ean — batch by chunks of 100 EANs
-  const eanToProduct = {};
-  const eans = [...new Set(parsedValid.map(i=>i.ean))];
-
-  try {
-    // getInventoryProductsList can filter by EAN one at a time — use getInventoryProductsData instead
-    // We'll call getInventoryProductsList with no filter and page through, or use filter_ean
-    // BaseLinker supports filter_ean in getInventoryProductsList
-    oLog('Szukam '+eans.length+' EAN w katalogu BL...', 'info');
-
-    // Process in chunks of 100
-    for(let i=0; i<eans.length; i+=50){
-      const chunk = eans.slice(i, i+50);
-      for(const ean of chunk){
-        try{
-          const res = await blApi(token, workerUrl, 'getInventoryProductsList', {
-            inventory_id: INVENTORY_ID,
-            filter_ean: ean,
-            page: 1
-          });
-          const prods = res.products || {};
-          Object.entries(prods).forEach(([pid, p])=>{
-            if(!eanToProduct[ean]){
-              const prices = p.prices || {};
-              const priceVal = p.price_brutto || p.price || Object.values(prices)[0] || 0;
-              eanToProduct[ean] = {
-                product_id: pid,
-                name: p.name || '',
-                sku: p.sku || '',
-                price_brutto: parseFloat(priceVal) || 0,
-                tax_rate: 23
-              };
-            }
-          });
-        }catch(e){ /* skip */ }
-      }
-    }
-    const found = Object.keys(eanToProduct).length;
-    oLog('Znaleziono '+found+' z '+eans.length+' produktów w katalogu', found===eans.length?'ok':'info');
-  }catch(e){
-    oLog('Uwaga: nie udało się pobrać katalogu: '+e.message, 'err');
-  }
-
-  $('o-createBtn').querySelector('.btn-label').textContent='Tworzenie zamówienia...';
-
-  // Step 3: build products array with product_id and price from catalog
-  const products = parsedValid.map(i=>{
-    const cat = eanToProduct[i.ean] || {};
-    return {
-      storage: 'db',
-      storage_id: 0,
-      product_id: cat.product_id || '',
-      variant_id: 0,
-      name: cat.name || i.name,
-      sku: cat.sku || i.symbol || '',
-      ean: i.ean,
-      location: '',
-      warehouse_id: 0,
-      attributes: '',
-      price_brutto: cat.price_brutto || 0,
-      tax_rate: cat.tax_rate || 23,
-      quantity: i.qty,
-      weight: 0
-    };
-  });
-
-  const statusId = $('o-status').value;
-  if(!statusId){oLog('Wybierz status zamówienia!','err');$('o-createBtn').disabled=false;$('o-createBtn').classList.remove('loading');$('o-createBtn').querySelector('.btn-label').textContent='Utwórz zamówienie w BaseLinker →';return;}
-
-  const sourceEl = $('o-source');
-  const sourceType = sourceEl.options[sourceEl.selectedIndex]?.dataset?.type || 'personal';
-
-  // BaseLinker addOrder: custom_source_id is optional
-  // order_source / order_source_id do NOT exist in addOrder API
-  const customSourceId = parseInt(sourceId) || 0;
   const params={
-    order_status_id: parseInt(statusId),
-    ...(customSourceId > 0 ? {custom_source_id: customSourceId} : {}),
+    order_source_id: parseInt(sourceId),
     date_add: Math.floor(Date.now()/1000),
     currency: 'PLN',
     payment_method: 'przelew',
@@ -777,6 +758,8 @@ $('o-createBtn').addEventListener('click', async ()=>{
     delivery_postcode: $('o-postcode').value.trim()||'',
     delivery_country_code: 'PL',
     delivery_price: 0,
+    delivery_package_module: '',
+    delivery_package_nr: '',
     products: products,
   };
 
@@ -803,6 +786,258 @@ $('o-createBtn').addEventListener('click', async ()=>{
 
 function oLog(msg,type=''){addLog('o-log',msg,type);}
 
+
+// ══════════════════════════════════════════════
+// SYMFONIA MODULE — z SLOWNIK + Claude matching
+// ══════════════════════════════════════════════
+
+// ── SLOWNIK: localStorage storage
+const SLOWNIK_KEY = 'bl_slownik_v1';
+
+function slownikLoad() {
+  try { return JSON.parse(localStorage.getItem(SLOWNIK_KEY)||'{}'); }
+  catch { return {}; }
+}
+function slownikSave(d) {
+  localStorage.setItem(SLOWNIK_KEY, JSON.stringify(d));
+}
+// slownik: { "Kod towaru": { ean:"...", name:"...", confirmed:true/false } }
+
+let sFile = null;
+let sCsvContent = '';
+let sAllItems = [];   // parsed xlsx rows
+let sSlownik = slownikLoad();
+
+setupDropZone('s-dropZone','s-fileInput', false, files=>{
+  if(!files.length) return;
+  sFile = files[0];
+  $('s-fileList').innerHTML = '';
+  const item = document.createElement('div'); item.className='file-item'; item.id='sfi-main';
+  item.innerHTML=`<svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+  <span class="fi-name">${esc(sFile.name)}</span>
+  <span class="fi-badge pending" id="sfib-main">czeka</span>
+  <button class="fi-remove" title="Usuń">✕</button>`;
+  item.querySelector('.fi-remove').addEventListener('click', e=>{
+    e.stopPropagation(); sFile=null; $('s-fileList').innerHTML='';
+    $('s-parseBtn').disabled=true; $('s-fileCount').textContent='—';
+  });
+  $('s-fileList').appendChild(item);
+  $('s-parseBtn').disabled=false;
+  $('s-fileCount').textContent='1 plik';
+});
+
+$('s-parseBtn').addEventListener('click', async ()=>{
+  const apiKey=$('apiKey').value.trim();
+  const workerUrl=$('workerUrl').value.trim().replace(/\/$/,'');
+  const token=$('blToken').value.trim();
+  if(!sFile){sLog('Brak pliku XLSX!','err');return;}
+  if(!apiKey){sLog('Brak klucza API!','err');return;}
+  if(!workerUrl){sLog('Brak Worker URL!','err');return;}
+  if(!token){sLog('Brak BaseLinker token!','err');return;}
+
+  $('s-parseBtn').disabled=true; $('s-parseBtn').classList.add('loading');
+  $('s-parseBtn').querySelector('.btn-label').textContent='Czytam XLSX...';
+  $('s-downloadBtn').disabled=true;
+  $('s-log').innerHTML='';
+  $('s-emptyState').style.display='flex'; $('s-resultState').style.display='none';
+  sCsvContent='';
+  sSlownik = slownikLoad();
+
+  // Step 1: parse XLSX
+  let rows=[];
+  try{
+    const buf = await sFile.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    sLog('Wczytano '+rows.length+' wierszy z XLSX','ok');
+  }catch(e){
+    sLog('Błąd odczytu XLSX: '+e.message,'err');
+    sReset(); return;
+  }
+
+  // Step 2: parse all items
+  sAllItems=[];
+  for(const r of rows){
+    const kodTowaru = String(r['Kod towaru']||r['Kod']||'').trim();
+    const rawEan    = String(r['Kod towaru']||r['Kod']||'').replace(/\D/g,'');
+    const qty       = Number(r['Ilość']||r['Ilosc']||0)||0;
+    const priceN    = parseFloat(String(r['Cena jednostkowa']||r['Cena']||'0').replace(',','.'))||0;
+    const priceBrutto = parseFloat((priceN * 1.23).toFixed(2));
+    const name      = String(r['Opis towaru']||r['Opis']||'').trim();
+    if(!kodTowaru || qty<=0) continue;
+    // valid EAN = 8-14 digits
+    const ean = (rawEan.length>=8 && rawEan.length<=14) ? rawEan : '';
+    sAllItems.push({kodTowaru, ean, qty, priceBrutto, name});
+  }
+  sLog('Pozycji: '+sAllItems.length,'info');
+
+  // Step 3: find items missing EAN — check SLOWNIK first
+  const missingEan = sAllItems.filter(i=>!i.ean);
+  const needClaude = missingEan.filter(i=>!sSlownik[i.kodTowaru]);
+
+  sLog('Brak EAN: '+missingEan.length+', w SLOWNIKU: '+(missingEan.length-needClaude.length),'info');
+
+  // Step 4: Claude matching for items not in SLOWNIK
+  if(needClaude.length > 0){
+    $('s-parseBtn').querySelector('.btn-label').textContent='Claude dopasowuje...';
+    sLog('Claude dopasowuje '+needClaude.length+' pozycji...','info');
+    try{
+      const matched = await claudeMatchSymfonia(apiKey, workerUrl, needClaude);
+      // save to slownik
+      matched.forEach(m=>{
+        if(m.ean) sSlownik[m.kodTowaru]={ean:m.ean, name:m.suggestedName||m.name, confirmed:true};
+        else sSlownik[m.kodTowaru]={ean:'', name:m.name, confirmed:false};
+      });
+      slownikSave(sSlownik);
+      const foundCount = matched.filter(m=>m.ean).length;
+      sLog('Claude znalazł EAN dla '+foundCount+' z '+needClaude.length,'ok');
+    }catch(e){
+      sLog('Claude błąd: '+e.message,'err');
+    }
+  }
+
+  // Step 5: apply SLOWNIK to all items
+  sAllItems.forEach(item=>{
+    if(!item.ean && sSlownik[item.kodTowaru]){
+      item.ean = sSlownik[item.kodTowaru].ean || '';
+    }
+  });
+
+  // Step 6: build CSV
+  sBuildAndRender();
+});
+
+async function claudeMatchSymfonia(apiKey, workerUrl, items) {
+  const token = $('blToken').value.trim();
+  const INVENTORY_ID = 9405;
+
+  // Step A: load BL catalog (pages until done, max 10 pages)
+  sLog('Pobieranie katalogu BL...','info');
+  const blProducts = [];
+  let page = 1;
+  while(page <= 10){
+    try{
+      const res = await blApi(token, workerUrl, 'getInventoryProductsList', {
+        inventory_id: INVENTORY_ID, page
+      });
+      const prods = res.products || {};
+      const keys = Object.keys(prods);
+      if(keys.length === 0) break;
+      keys.forEach(pid=>{
+        const p = prods[pid];
+        const ean = String(p.ean||'').replace(/\D/g,'');
+        if(ean.length>=8) blProducts.push({pid, ean, name:p.name||'', sku:p.sku||''});
+      });
+      if(keys.length < 100) break;
+      page++;
+    }catch(e){ break; }
+  }
+  sLog('Katalog BL: '+blProducts.length+' produktów','ok');
+
+  // Step B: send to Claude with BL catalog
+  const endpoint = workerUrl+'/v1/messages';
+  const symList = items.map((i,idx)=>`${idx+1}. kod="${i.kodTowaru}" nazwa="${i.name}"`).join('\n');
+  const blList = blProducts.map(p=>`EAN:${p.ean} | SKU:${p.sku} | ${p.name}`).join('\n');
+
+  const prompt = `Dopasuj produkty z Symfonii do produktów w katalogu BaseLinker.
+
+PRODUKTY Z SYMFONII (do dopasowania):
+${symList}
+
+KATALOG BASELINKER (EAN | SKU | nazwa):
+${blList}
+
+Dla każdego produktu z Symfonii znajdź najlepiej pasujący produkt z katalogu BL na podstawie podobieństwa nazwy.
+Nazwy mogą się różnić (np. "3D Gel 5 ml" → "3D Gum Gel Clear 5 g") — dopasuj semantycznie.
+
+Zwróć TYLKO tablicę JSON (bez markdown):
+[{"kodTowaru":"kod z Symfonii","ean":"EAN z katalogu BL lub empty string jeśli brak dopasowania","suggestedName":"nazwa z BL"}]`;
+
+  const resp = await fetch(endpoint, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514', max_tokens:4096,
+      messages:[{role:'user',content:[{type:'text',text:prompt}]}]
+    })
+  });
+  if(!resp.ok) throw new Error('HTTP '+resp.status);
+  const data=await resp.json();
+  const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+  const clean=text.replace(/```json\s*/gi,'').replace(/```\s*/gi,'').trim();
+  let result;
+  try{result=JSON.parse(clean);}catch{throw new Error('Nieoczekiwana odpowiedź Claude');}
+  return Array.isArray(result)?result:[];
+}
+
+function sBuildAndRender(){
+  const agg={};
+  let totalQty=0, noEan=0;
+  const noEanNames=[];
+
+  sAllItems.forEach(item=>{
+    if(!item.ean || item.ean.length<8){
+      noEan++; noEanNames.push(item.name||item.kodTowaru); return;
+    }
+    const key=item.ean+'|'+item.priceBrutto.toFixed(2);
+    if(!agg[key]) agg[key]={ean:item.ean, qty:0, price:item.priceBrutto};
+    agg[key].qty+=item.qty;
+    totalQty+=item.qty;
+  });
+
+  const csvRows=Object.values(agg).map(v=>[v.ean,v.qty,v.price.toFixed(2),'','','','']);
+  sCsvContent='\uFEFF'+csvRows.map(r=>r.join(';')).join('\n');
+
+  $('s-statLines').textContent=csvRows.length;
+  $('s-statQty').textContent=totalQty;
+  $('s-statSkipped').textContent=noEan;
+  $('s-resultCount').textContent=csvRows.length+' pozycji';
+
+  const wb=$('s-warnBox');
+  if(noEan>0){
+    wb.style.display='block';
+    wb.textContent='Brak EAN dla '+noEan+' pozycji (dodano do SLOWNIK): '+noEanNames.slice(0,5).join(', ')+(noEanNames.length>5?'...':'');
+  } else wb.style.display='none';
+
+  const tbody=$('s-csvBody'); tbody.innerHTML='';
+  csvRows.slice(0,50).forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=r.map(v=>`<td>${esc(String(v))}</td>`).join('');
+    tbody.appendChild(tr);
+  });
+  const mEl=$('s-moreRows');
+  if(csvRows.length>50){mEl.style.display='block';mEl.textContent='+ '+(csvRows.length-50)+' kolejnych';}
+  else mEl.style.display='none';
+
+  $('s-emptyState').style.display='none'; $('s-resultState').style.display='flex';
+  $('s-downloadBtn').disabled=csvRows.length===0;
+  $('s-parseBtn').classList.remove('loading');
+  $('s-parseBtn').querySelector('.btn-label').textContent='Generuj CSV →';
+  $('s-parseBtn').disabled=false;
+  sLog('Gotowe. '+csvRows.length+' EAN → CSV.','ok');
+}
+
+function sReset(){
+  $('s-parseBtn').classList.remove('loading');
+  $('s-parseBtn').querySelector('.btn-label').textContent='Generuj CSV →';
+  $('s-parseBtn').disabled=false;
+}
+
+$('s-downloadBtn').addEventListener('click',()=>{
+  if(!sCsvContent) return;
+  const now=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const name=`PRZYCHOD_BL_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.csv`;
+  const blob=new Blob([sCsvContent],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  sLog('Pobrano: '+name,'ok');
+});
+
+function sLog(msg,type=''){addLog('s-log',msg,type);}
+
 // ══════════════════════════════════════════════
 // SHARED: CLAUDE API
 // ══════════════════════════════════════════════
@@ -825,36 +1060,16 @@ Zasady:
 - Liczba obiektów MUSI być równa liczbie wierszy towarowych
 - NIE sumuj, NIE łącz — jeden wiersz faktury = jeden obiekt JSON`;
 
-  const promptOrder=`To jest zamówienie które klient wysłał DO NAS. Wyodrębnij dwa elementy.
+  const promptOrder=`Z tego dokumentu PDF (zamówienie od klienta) wyodrębnij WSZYSTKIE pozycje towarowe.
 
-1) Dane KLIENTA który składa zamówienie:
-   - To jest firma/osoba w sekcji "Sprzedawca", "Zamawiający", "Nabywca" lub wystawca dokumentu
-   - W tym typie dokumentu ("Zamówienie do dostawcy") — klient to ten kto WYSTAWIA dokument (sekcja "Sprzedawca" lub nagłówek firmy)
-   - Szukaj: nazwy firmy, NIP, adresu, telefonu, emaila wystawcy zamówienia
+Zwróć TYLKO tablicę JSON (bez markdown, bez żadnego tekstu):
+[{"lp":numer_wiersza,"ean":"cyfry 8-14 znaków z pola Kod kreskowy","symbol":"kod/symbol produktu","nazwa":"pełna nazwa towaru","ilosc":liczba}]
 
-2) WSZYSTKIE pozycje towarowe z tabeli
-
-Zwróć TYLKO jeden obiekt JSON (bez markdown, bez żadnego tekstu):
-{
-  "klient": {
-    "nazwa": "pełna nazwa firmy klienta",
-    "email": "email lub ''",
-    "telefon": "telefon lub ''",
-    "nip": "NIP tylko cyfry lub ''",
-    "ulica": "ulica i numer lub ''",
-    "kod_pocztowy": "kod pocztowy lub ''",
-    "miasto": "miasto lub ''"
-  },
-  "pozycje": [
-    {"lp":numer_wiersza,"ean":"cyfry 8-14 znaków z pola Kod kreskowy","symbol":"kod/symbol produktu","nazwa":"pełna nazwa towaru","ilosc":liczba}
-  ]
-}
-
-Zasady dla pozycji:
+Zasady:
 - "ean" = cyfry z kolumny "Kod kreskowy" lub "EAN" (8-14 znaków); jeśli brak zostaw ""
 - "symbol" = kod z kolumny "Symbol" lub "Artykuł"
-- "ilosc" = liczba sztuk (format "6,000" = 6 sztuk, nie 6000)
-- Jeden wiersz dokumentu = jeden obiekt w pozycje
+- "ilosc" = liczba sztuk z TEGO wiersza (UWAGA: format "6,000" oznacza 6 sztuk, nie 6000 — przecinek to separator dziesiętny lub tysięczny w formacie polskim, zawsze zwróć liczbę całkowitą bez przecinków)
+- Jeden wiersz dokumentu = jeden obiekt JSON
 - NIE pomijaj żadnych pozycji towarowych`;
 
   const resp=await fetch(endpoint,{
@@ -878,40 +1093,84 @@ Zasady dla pozycji:
   const data=await resp.json();
   const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
   const clean=text.replace(/```json\s*/gi,'').replace(/```\s*/gi,'').trim();
-  let parsed;
-  try{parsed=JSON.parse(clean);}catch{throw new Error('Nieoczekiwana odpowiedź: '+clean.substring(0,100));}
-  // Order mode returns {klient, pozycje}, dostawa returns array
-  if(mode==='order'){
-    if(Array.isArray(parsed)) return {klient:{}, pozycje:parsed};
-    if(parsed && parsed.pozycje) return parsed;
-    throw new Error('Claude zwrócił nieoczekiwany format');
-  }
-  if(!Array.isArray(parsed)) throw new Error('Claude zwrócił nieoczekiwany format');
-  return parsed;
+  let items;
+  try{items=JSON.parse(clean);}catch{throw new Error('Nieoczekiwana odpowiedź: '+clean.substring(0,100));}
+  if(!Array.isArray(items)) throw new Error('Claude zwrócił nieoczekiwany format');
+  return items;
 }
 
 // ── BaseLinker API via Worker
 async function blApi(token, workerUrl, method, params) {
-  // Route through Cloudflare Worker to avoid CORS
-  const endpoint = workerUrl + '/bl';
-  const body = new URLSearchParams();
-  body.append('token', token);
-  body.append('method', method);
-  body.append('parameters', JSON.stringify(params));
+  const endpoint=workerUrl+'/v1/messages';
+  // Use worker as generic proxy — call BL directly from browser via worker CORS headers
+  // Actually call BL API directly (worker just adds CORS for Anthropic, BL doesn't need it)
+  const body=new URLSearchParams();
+  body.append('token',token);
+  body.append('method',method);
+  body.append('parameters',JSON.stringify(params));
 
-  const resp = await fetch(endpoint, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-    body: body.toString()
+  const resp=await fetch('https://api.baselinker.com/connector.php',{
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:body.toString()
   });
 
-  if (!resp.ok) throw new Error('BL HTTP ' + resp.status);
-  const data = await resp.json();
-  if (data.status === 'ERROR') throw new Error(data.error_message || 'BaseLinker error ' + data.error_code);
+  if(!resp.ok) throw new Error('BL HTTP '+resp.status);
+  const data=await resp.json();
+  if(data.status==='ERROR') throw new Error(data.error_message||'BaseLinker error '+data.error_code);
   return data;
 }
 
 // ── UTILS
+
+// ── SLOWNIK MODAL
+function sShowSlownik(){
+  sSlownik = slownikLoad();
+  const tbody = document.getElementById('slownik-tbody');
+  tbody.innerHTML='';
+  const entries = Object.entries(sSlownik);
+  if(entries.length===0){
+    tbody.innerHTML='<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--text3);font-family:var(--mono);font-size:11px">Słownik jest pusty. Zostanie uzupełniony po przetworzeniu pliku XLSX.</td></tr>';
+  } else {
+    entries.forEach(([kod,val])=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`
+        <td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text2)">${esc(kod)}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid var(--border);color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(val.name||'')}</td>
+        <td style="padding:5px 10px;border-bottom:1px solid var(--border)">
+          <input type="text" value="${esc(val.ean||'')}" data-kod="${esc(kod)}"
+            style="background:var(--bg3);border:1px solid var(--border);border-radius:4px;color:var(--green-txt);font-family:var(--mono);font-size:11px;padding:3px 7px;width:140px"
+            onchange="sUpdateSlownikEan(this)">
+        </td>
+        <td style="padding:5px 10px;border-bottom:1px solid var(--border)">
+          <button onclick="sDeleteSlownikEntry('${esc(kod)}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:12px" title="Usuń">✕</button>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('slownik-modal').style.display='block';
+}
+function sCloseSlownik(){ document.getElementById('slownik-modal').style.display='none'; }
+function sUpdateSlownikEan(input){
+  const kod=input.dataset.kod;
+  sSlownik=slownikLoad();
+  if(sSlownik[kod]) sSlownik[kod].ean=input.value.trim().replace(/\D/g,'');
+  else sSlownik[kod]={ean:input.value.trim().replace(/\D/g,''),name:'',confirmed:true};
+  slownikSave(sSlownik);
+}
+function sDeleteSlownikEntry(kod){
+  sSlownik=slownikLoad();
+  delete sSlownik[kod];
+  slownikSave(sSlownik);
+  sShowSlownik();
+}
+function sClearSlownik(){
+  if(!confirm('Wyczyścić cały słownik?')) return;
+  localStorage.removeItem(SLOWNIK_KEY);
+  sSlownik={};
+  sShowSlownik();
+}
+
 function setupDropZone(zoneId, inputId, multiple, cb){
   const zone=$(zoneId), input=$(inputId);
   zone.addEventListener('click',()=>input.click());
