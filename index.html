@@ -867,7 +867,7 @@ $('s-parseBtn').addEventListener('click', async ()=>{
     const priceBrutto = parseFloat((priceN * 1.23).toFixed(2));
     const name      = String(r['Opis towaru']||r['Opis']||'').trim();
     if(!kodTowaru || qty<=0) continue;
-    // EAN zawsze puste — szukamy przez katalog BL
+    // EAN zawsze puste — szukamy przez katalog BL (kody 480000000xxx to kody wewnętrzne Symfonii, nie EAN)
     sAllItems.push({kodTowaru, ean:'', qty, priceBrutto, name});
   }
   sLog('Pozycji: '+sAllItems.length,'info');
@@ -886,8 +886,10 @@ $('s-parseBtn').addEventListener('click', async ()=>{
       const matched = await claudeMatchSymfonia(apiKey, workerUrl, needClaude);
       // save to slownik
       matched.forEach(m=>{
-        if(m.ean) sSlownik[m.kodTowaru]={ean:m.ean, name:m.suggestedName||m.name, confirmed:true};
-        else sSlownik[m.kodTowaru]={ean:'', name:m.name, confirmed:false};
+        const cleanEan = (m.ean||'').replace(/\D/g,'');
+        const validEan = cleanEan.length>=8 && cleanEan.length<=14 && !cleanEan.startsWith('480000000');
+        if(validEan) sSlownik[m.kodTowaru]={ean:cleanEan, name:m.suggestedName||m.name, confirmed:true};
+        else sSlownik[m.kodTowaru]={ean:'', name:m.suggestedName||m.name, confirmed:false};
       });
       slownikSave(sSlownik);
       const foundCount = matched.filter(m=>m.ean).length;
@@ -948,15 +950,15 @@ ${symList}
 KATALOG BASELINKER (EAN | SKU | nazwa):
 ${blList}
 
-Zasady dopasowania:
-- Dopasuj na podstawie PEŁNEJ nazwy produktu
-- KRYTYCZNE: numer koloru/wariantu w nazwie MUSI się zgadzać dokładnie (np. "Gel 25" ≠ "Gel 01", "Gel 04" ≠ "Gel 25")
-- Rozmiar/gramatura też musi pasować (np. "30 g" ≠ "15 g")
-- Jeśli nie ma DOKŁADNEGO dopasowania — zwróć "" dla EAN, nie zgaduj
-- Małe różnice w pisowni są OK (np. "ml" vs "g", skróty nazw)
+ZASADY DOPASOWANIA (bardzo ścisłe):
+1. Dopasuj WYŁĄCZNIE na podstawie nazwy z kolumny "nazwa" (Opis towaru z Symfonii)
+2. NUMER w nazwie MUSI być IDENTYCZNY: "Gel 11" ≠ "Gel 01", "Gel 25" ≠ "Gel 04"
+3. ROZMIAR/GRAMATURA musi być IDENTYCZNA: "15 g" ≠ "30 g", "13 ml" ≠ "30 ml"
+4. Jeśli nie jesteś w 100% pewny — zwróć "" (pusty string), NIE zgaduj
+5. Lepiej zwrócić "" niż podać zły EAN
 
-Zwróć TYLKO tablicę JSON (bez markdown):
-[{"kodTowaru":"kod z Symfonii","ean":"EAN z katalogu BL lub empty string jeśli brak pewnego dopasowania","suggestedName":"nazwa z BL lub empty string"}]`;
+Zwróć TYLKO tablicę JSON (bez markdown, bez tekstu):
+[{"kodTowaru":"kod z Symfonii","ean":"EAN z katalogu BL lub PUSTY STRING jeśli jakiekolwiek wątpliwości","suggestedName":"dokładna nazwa z BL"}]`;
 
   const resp = await fetch(endpoint, {
     method:'POST',
@@ -981,7 +983,10 @@ function sBuildAndRender(){
   const missing=[]; // items without EAN
 
   sAllItems.forEach(item=>{
-    if(!item.ean || item.ean.length<8){
+    // Internal Symfonia codes (48000000xxxx) are NOT valid EAN for BL
+    const isSymfoniaCode = item.ean && item.ean.startsWith('480000000');
+    if(!item.ean || item.ean.length<8 || isSymfoniaCode){
+      if(isSymfoniaCode) item.ean = ''; // clear fake EAN
       missing.push(item); return;
     }
     const key=item.ean+'|'+item.priceBrutto.toFixed(2);
